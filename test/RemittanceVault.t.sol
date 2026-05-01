@@ -1,0 +1,179 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Test, console2} from "forge-std/Test.sol";
+import {MockERC20} from "../src/mocks/MockERC20.sol";
+import {MockMezoVault} from "../src/mocks/MockMezoVault.sol";
+import {InsurancePool} from "../src/InsurancePool.sol";
+import {RemittanceVault} from "../src/RemittanceVault.sol";
+
+contract RemittanceVaultTest is Test {
+    MockERC20 internal musd;
+    MockERC20 internal btc;
+    MockMezoVault internal mezo;
+    InsurancePool internal pool;
+    RemittanceVault internal vault;
+
+    address internal deployer = address(this);
+    address internal sender = address(0xA11CE);
+    address internal recipient = address(0xB0B);
+    address internal lp = address(0xC0FFEE);
+    address internal keeper = address(0xDEAD);
+
+    bytes32 internal constant PIN = keccak256(abi.encodePacked(uint256(123456)));
+
+    function setUp() public {
+        musd = new MockERC20("Mezo USD", "MUSD", 18);
+        btc = new MockERC20("Test BTC", "tBTC", 18);
+        mezo = new MockMezoVault(address(musd), address(btc));
+        pool = new InsurancePool(address(musd));
+        vault = new RemittanceVault(address(mezo), address(pool));
+        pool.setVault(address(vault));
+        vault.setKeeper(keeper);
+
+        // fund sender with BTC
+        btc.mint(sender, 100 ether);
+        // fund LP with MUSD so pool has reserves
+        musd.mint(lp, 50_000 ether);
+        vm.prank(lp);
+        musd.approve(address(pool), type(uint256).max);
+        vm.prank(lp);
+        pool.deposit(10_000 ether);
+    }
+
+    // -------------------- helpers --------------------
+
+    function _create(uint256 musdAmount, uint256 collat, uint256 expiry, address _recipient)
+        internal
+        returns (bytes32 orderId)
+    {
+        vm.startPrank(sender);
+        btc.approve(address(vault), collat);
+        orderId = vault.createRemittance(_recipient, musdAmount, collat, PIN, expiry);
+        vm.stopPrank();
+    }
+
+    // -------------------- tests --------------------
+
+    function testCreateRemittance() public {
+        bytes32 orderId = _create(1_000 ether, 0.05 ether, 3 days, recipient);
+        RemittanceVault.RemittanceOrder memory o = vault.getOrder(orderId);
+        assertEq(o.sender, sender);
+        assertEq(o.recipient, recipient);
+        assertEq(o.musdAmount, 1_000 ether);
+        assertEq(o.collateralBTC, 0.05 ether);
+        assertEq(uint8(o.status), uint8(RemittanceVault.OrderStatus.PENDING));
+        // vault should hold 1000 MUSD in escrow
+        assertEq(musd.balanceOf(address(vault)), 1_000 ether);
+    }
+
+    function testClaimWithCorrectPin() public {
+        bytes32 orderId = _create(1_000 ether, 0.05 ether, 3 days, recipient);
+        vm.prank(recipient);
+        vault.claimRemittance(orderId, PIN);
+
+        // 0.10% fee → 1 MUSD to pool, 999 MUSD to recipient
+        assertEq(musd.balanceOf(recipient), 999 ether);
+        assertEq(musd.balanceOf(address(vault)), 0);
+
+        RemittanceVault.RemittanceOrder memory o = vault.getOrder(orderId);
+        assertEq(uint8(o.status), uint8(RemittanceVault.OrderStatus.CLAIMED));
+    }
+
+    function testClaimWithWrongPin() public {
+        bytes32 orderId = _create(1_000 ether, 0.05 ether, 3 days, recipient);
+        bytes32 badPin = keccak256(abi.encodePacked(uint256(999999)));
+        vm.prank(recipient);
+        vm.expectRevert(bytes("bad pin"));
+        vault.claimRemittance(orderId, badPin);
+    }
+
+    function testCancelAfterExpiry() public {
+        bytes32 orderId = _create(1_000 ether, 0.05 ether, 3 days, recipient);
+        vm.warp(block.timestamp + 3 days + 1);
+
+        uint256 btcBefore = btc.balanceOf(sender);
+        vm.prank(sender);
+        vault.cancelRemittance(orderId);
+        uint256 btcAfter = btc.balanceOf(sender);
+        assertEq(btcAfter - btcBefore, 0.05 ether);
+
+        RemittanceVault.RemittanceOrder memory o = vault.getOrder(orderId);
+        assertEq(uint8(o.status), uint8(RemittanceVault.OrderStatus.CANCELLED));
+    }
+
+    function testCancelBeforeExpiryReverts() public {
+        bytes32 orderId = _create(1_000 ether, 0.05 ether, 3 days, recipient);
+        vm.prank(sender);
+        vm.expectRevert(bytes("not expired"));
+        vault.cancelRemittance(orderId);
+    }
+
+    function testCollateralTopUp() public {
+        bytes32 orderId = _create(1_000 ether, 0.05 ether, 3 days, recipient);
+        uint256 ratioBefore = vault.vaultCollateralRatio();
+
+        vm.startPrank(sender);
+        btc.approve(address(vault), 0.05 ether);
+        vault.topUpCollateral(orderId, 0.05 ether);
+        vm.stopPrank();
+
+        uint256 ratioAfter = vault.vaultCollateralRatio();
+        assertGt(ratioAfter, ratioBefore);
+
+        RemittanceVault.RemittanceOrder memory o = vault.getOrder(orderId);
+        assertEq(o.collateralBTC, 0.1 ether);
+    }
+
+    function testInsurancePoolCover() public {
+        bytes32 orderId = _create(1_000 ether, 0.05 ether, 3 days, recipient);
+
+        // crash BTC price so vault CR falls below liquidation threshold (110%)
+        // start CR ~ 0.05 * 60000 / 1000 = 3e18 (300%)
+        // to get CR < 110%, need price * 0.05 / 1000 < 1.1 → price < 22000
+        mezo.setBtcPrice(20_000 ether);
+
+        uint256 senderMusdBefore = musd.balanceOf(sender);
+        vm.prank(keeper);
+        vault.liquidationGuard(orderId);
+        uint256 senderMusdAfter = musd.balanceOf(sender);
+
+        // sender gets full MUSD refund
+        assertEq(senderMusdAfter - senderMusdBefore, 1_000 ether);
+
+        RemittanceVault.RemittanceOrder memory o = vault.getOrder(orderId);
+        assertEq(uint8(o.status), uint8(RemittanceVault.OrderStatus.LIQUIDATED));
+    }
+
+    function testFullHappyPath() public {
+        // create
+        bytes32 orderId = _create(500 ether, 0.02 ether, 2 days, recipient);
+        // recipient claims
+        vm.prank(recipient);
+        vault.claimRemittance(orderId, PIN);
+        // recipient has 500 - 0.10% = 499.5 MUSD
+        assertEq(musd.balanceOf(recipient), 499.5 ether);
+        // pool accumulated 0.5 MUSD of fees
+        assertEq(musd.balanceOf(address(pool)), 10_000 ether + 0.5 ether);
+    }
+
+    function testPoolDepositWithdraw() public {
+        uint256 beforeReserve = pool.totalReserve();
+        uint256 shares = pool.sharesOf(lp);
+
+        vm.prank(lp);
+        uint256 out = pool.withdraw(shares / 2);
+
+        assertApproxEqAbs(out, beforeReserve / 2, 1);
+        assertEq(pool.sharesOf(lp), shares - shares / 2);
+    }
+
+    function testClaimAnyoneIfRecipientUnset() public {
+        // recipient = address(0) → any wallet that knows the PIN can claim
+        address anon = address(0xA0A0);
+        bytes32 orderId = _create(100 ether, 0.005 ether, 1 days, address(0));
+        vm.prank(anon);
+        vault.claimRemittance(orderId, PIN);
+        assertEq(musd.balanceOf(anon), 99.9 ether);
+    }
+}
