@@ -9,24 +9,35 @@ import { offrampRouter } from "./routes/offramp";
 import { notifyRouter } from "./routes/notify";
 import { poolRouter } from "./routes/pool";
 import { startChainWatcher } from "./services/chainWatcher";
+import { initDb } from "./db";
 
-const app = express();
-app.use(helmet());
-app.use(cors({ origin: serverConfig.corsOrigin, credentials: true }));
-app.use(express.json({ limit: "1mb" }));
-app.use(morgan("tiny"));
+async function main() {
+  await initDb();
+  console.log("[db] initialized");
 
-app.get("/health", (_req, res) => {
-  res.json({ ok: true, addresses });
-});
+  const app = express();
+  app.use(helmet());
+  app.use(cors({ origin: serverConfig.corsOrigin, credentials: true }));
+  app.use(express.json({ limit: "1mb" }));
+  app.use(morgan("tiny"));
 
-app.use("/api/remittance", remittanceRouter);
-app.use("/api/collateral", collateralRouter);
-app.use("/api/offramp", offrampRouter);
-app.use("/api/notify", notifyRouter);
-app.use("/api/pool", poolRouter);
+  app.get("/health", (_req, res) => {
+    res.json({ ok: true, addresses });
+  });
 
-app.listen(serverConfig.port, () => {
-  console.log(`[api] listening on :${serverConfig.port}`);
-  startChainWatcher().catch((err) => console.error("[watcher] fatal", err));
+  app.use("/api/remittance", remittanceRouter);
+  app.use("/api/collateral", collateralRouter);
+  app.use("/api/offramp", offrampRouter);
+  app.use("/api/notify", notifyRouter);
+  app.use("/api/pool", poolRouter);
+
+  app.listen(serverConfig.port, () => {
+    console.log(`[api] listening on :${serverConfig.port}`);
+    startChainWatcher().catch((err) => console.error("[watcher] fatal", err));
+  });
+}
+
+main().catch((err) => {
+  console.error("[main] fatal error", err);
+  process.exit(1);
 });

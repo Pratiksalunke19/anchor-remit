@@ -1,2 +1,4 @@
 allowBuilds:
   better-sqlite3: false
+  deasync: false
+  sqlite3: false
