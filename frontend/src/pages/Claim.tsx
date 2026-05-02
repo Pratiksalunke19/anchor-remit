@@ -27,8 +27,39 @@ export default function Claim() {
 
   useEffect(() => {
     if (!orderId) return;
-    api.getOrder(orderId).then(setOrder).catch((e) => setError(e.message));
-  }, [orderId]);
+    api
+      .getOrder(orderId)
+      .then(setOrder)
+      .catch(async () => {
+        // backend down — read directly from the smart contract
+        if (!publicClient) {
+          setError("Backend unavailable and no RPC client");
+          return;
+        }
+        try {
+          const onchain = (await publicClient.readContract({
+            address: contractAddresses.remittanceVault,
+            abi: remittanceVaultAbi,
+            functionName: "getOrder",
+            args: [orderId as `0x${string}`],
+          })) as any;
+          const statusMap = ["PENDING", "CLAIMED", "CANCELLED", "LIQUIDATED"];
+          setOrder({
+            orderId,
+            sender: onchain.sender,
+            recipient: onchain.recipient,
+            musdAmount: onchain.musdAmount.toString(),
+            collateralBTC: onchain.collateralBTC.toString(),
+            createdAt: Number(onchain.createdAt),
+            expiryTimestamp: Number(onchain.expiryTimestamp),
+            status: statusMap[Number(onchain.status)] as any,
+          });
+        } catch (rpcErr: any) {
+          console.error("[claim] on-chain fallback failed", rpcErr);
+          setError("Failed to fetch order from backend and chain");
+        }
+      });
+  }, [orderId, publicClient]);
 
   async function submitClaim() {
     if (!orderId || !walletClient || !publicClient) return;

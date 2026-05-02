@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
-import { decodeEventLog, keccak256, parseEther, toBytes } from "viem";
+import { parseEventLogs, formatEther, keccak256, parseEther, toBytes } from "viem";
 import StepIndicator from "../components/StepIndicator";
 import PinInput from "../components/PinInput";
 import { remittanceVaultAbi, erc20Abi } from "../abi";
@@ -28,6 +28,44 @@ export default function Send() {
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<`0x${string}` | null>(null);
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
+  const [tbtcBalance, setTbtcBalance] = useState<bigint | null>(null);
+  const [minting, setMinting] = useState(false);
+
+  // fetch ERC20 tBTC balance
+  async function fetchTbtcBalance() {
+    if (!publicClient || !address) return;
+    const bal = (await publicClient.readContract({
+      address: contractAddresses.btc,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [address],
+    })) as bigint;
+    setTbtcBalance(bal);
+  }
+
+  // mint testnet tBTC from faucet (MockERC20.mint is open)
+  async function mintTestBtc() {
+    if (!walletClient || !publicClient || !address) return;
+    setMinting(true);
+    try {
+      const hash = await walletClient.writeContract({
+        address: contractAddresses.btc,
+        abi: erc20Abi,
+        functionName: "mint",
+        args: [address, parseEther("1")],
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      await fetchTbtcBalance();
+    } catch (e: any) {
+      console.error("[faucet] mint failed", e);
+      setError(e?.shortMessage || e?.message || "Faucet mint failed");
+    } finally {
+      setMinting(false);
+    }
+  }
+
+  // refresh balance when wallet connects or step changes
+  useState(() => { fetchTbtcBalance(); });
 
   const canNext0 =
     Number(musdAmount) > 0 &&
@@ -70,7 +108,37 @@ export default function Send() {
         await publicClient.waitForTransactionReceipt({ hash: approveTx });
       }
 
-      // 2. createRemittance
+      // 2. pre-flight checks
+      const btcBalance = (await publicClient.readContract({
+        address: contractAddresses.btc,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+      console.log("[send] BTC balance", btcBalance.toString(), "needed", collat.toString());
+      if (btcBalance < collat) {
+        throw new Error(
+          `Insufficient tBTC (ERC20) balance. You have ${formatEther(btcBalance)} tBTC but need ${formatEther(collat)}. Use the faucet on the Amount step to mint testnet tBTC.`
+        );
+      }
+
+      // simulate to catch revert reason before sending
+      try {
+        await publicClient.simulateContract({
+          address: contractAddresses.remittanceVault,
+          abi: remittanceVaultAbi,
+          functionName: "createRemittance",
+          args: [recipient, musd, collat, claimCodeHash, BigInt(expiryHours * 3600)],
+          account: address,
+        });
+      } catch (simErr: any) {
+        console.error("[send] simulation reverted", simErr);
+        throw new Error(
+          simErr?.shortMessage || simErr?.message || "Transaction would revert — check collateral ratio"
+        );
+      }
+
+      // 3. createRemittance
       const hash = await walletClient.writeContract({
         address: contractAddresses.remittanceVault,
         abi: remittanceVaultAbi,
@@ -79,25 +147,53 @@ export default function Send() {
       });
       setTxHash(hash);
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log("[send] tx receipt", receipt.status, receipt.logs.length, "logs");
 
-      // parse orderId from event logs
+      if (receipt.status === "reverted") {
+        throw new Error("Transaction reverted on-chain");
+      }
+
+      // parse orderId from RemittanceCreated event
+      const vaultAddr = contractAddresses.remittanceVault.toLowerCase();
+      console.log("[send] vault address", vaultAddr, "log addresses", receipt.logs.map((l) => l.address));
+
       let parsedId: `0x${string}` | null = null;
-      for (const log of receipt.logs) {
-        try {
-          const ev = decodeEventLog({
-            abi: remittanceVaultAbi,
-            data: log.data,
-            topics: log.topics,
-          });
-          if (ev.eventName === "RemittanceCreated") {
-            parsedId = (ev.args as any).orderId;
+
+      // Approach 1: parseEventLogs (handles decoding + filtering by eventName)
+      try {
+        const parsed = parseEventLogs({
+          abi: remittanceVaultAbi,
+          eventName: "RemittanceCreated",
+          logs: receipt.logs,
+          strict: false,
+        });
+        if (parsed.length > 0) {
+          parsedId = (parsed[0].args as any).orderId;
+        }
+      } catch (parseErr) {
+        console.warn("[send] parseEventLogs failed", parseErr);
+      }
+
+      // Approach 2: manual fallback — orderId is indexed (topics[1]) on vault logs
+      if (!parsedId) {
+        const evSig = keccak256(toBytes("RemittanceCreated(bytes32,address,address,uint256,uint256,uint256)"));
+        for (const log of receipt.logs) {
+          if (
+            log.address.toLowerCase() === vaultAddr &&
+            log.topics[0] === evSig &&
+            log.topics.length >= 2
+          ) {
+            parsedId = log.topics[1] as `0x${string}`;
+            console.log("[send] orderId from manual topic extraction", parsedId);
             break;
           }
-        } catch {
-          // not our event
         }
       }
-      if (!parsedId) throw new Error("Could not parse orderId from tx");
+
+      if (!parsedId) {
+        console.error("[send] no RemittanceCreated event found in logs", receipt.logs);
+        throw new Error("Could not parse orderId from tx");
+      }
       setOrderId(parsedId);
 
       // 3. register in backend → triggers SMS
@@ -117,6 +213,7 @@ export default function Send() {
 
       setStep(3);
     } catch (e: any) {
+      console.error("[send] submit error", e);
       setError(e?.shortMessage || e?.message || "failed");
     } finally {
       setLoading(false);
@@ -196,11 +293,28 @@ export default function Send() {
               ))}
             </div>
           </div>
+          {/* tBTC balance + faucet */}
+          <div className="rounded-lg bg-white/5 p-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-white/50">Your tBTC (ERC20) balance</p>
+              <p className="font-medium">
+                {tbtcBalance !== null ? formatEther(tbtcBalance) : "—"} tBTC
+              </p>
+            </div>
+            <button
+              className="btn-ghost text-xs py-1 px-3"
+              onClick={mintTestBtc}
+              disabled={minting || !address}
+            >
+              {minting ? "Minting…" : "Faucet: mint 1 tBTC"}
+            </button>
+          </div>
+          {error && <p className="text-danger text-sm">{error}</p>}
           <div className="flex justify-end pt-2">
             <button
               className="btn-primary"
               disabled={!canNext0}
-              onClick={() => setStep(1)}
+              onClick={() => { setError(null); fetchTbtcBalance(); setStep(1); }}
             >
               Next
             </button>

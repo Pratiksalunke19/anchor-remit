@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { formatEther } from "viem";
 import CollateralMeter from "../components/CollateralMeter";
 import OrderCard, { OrderRow } from "../components/OrderCard";
@@ -9,6 +9,7 @@ import { api } from "../api";
 
 export default function Dashboard() {
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const [orders, setOrders] = useState<OrderRow[]>([]);
 
   const { data: cr } = useReadContract({
@@ -18,17 +19,60 @@ export default function Dashboard() {
     query: { refetchInterval: 10_000 },
   });
 
+  async function fetchOnChainOrders(addr: `0x${string}`) {
+    if (!publicClient) return;
+    const statusMap = ["PENDING", "CLAIMED", "CANCELLED", "LIQUIDATED"];
+    const logs = await publicClient.getContractEvents({
+      address: contractAddresses.remittanceVault,
+      abi: remittanceVaultAbi,
+      eventName: "RemittanceCreated",
+      args: { sender: addr },
+      fromBlock: 0n,
+    });
+    const rows: OrderRow[] = [];
+    for (const log of logs) {
+      const oid = (log.args as any).orderId as string;
+      try {
+        const o = (await publicClient.readContract({
+          address: contractAddresses.remittanceVault,
+          abi: remittanceVaultAbi,
+          functionName: "getOrder",
+          args: [oid as `0x${string}`],
+        })) as any;
+        rows.push({
+          order_id: oid,
+          recipient: o.recipient,
+          recipient_phone: null,
+          musd_amount: o.musdAmount.toString(),
+          collateral_btc: o.collateralBTC.toString(),
+          expiry_ts: Number(o.expiryTimestamp),
+          status: statusMap[Number(o.status)] || "PENDING",
+        });
+      } catch {
+        // skip unreadable orders
+      }
+    }
+    setOrders(rows);
+  }
+
+  async function fetchOrders(addr: `0x${string}`) {
+    try {
+      const r = await api.senderOrders(addr);
+      setOrders(r.orders);
+    } catch {
+      // backend down — fall back to on-chain
+      await fetchOnChainOrders(addr);
+    }
+  }
+
   useEffect(() => {
     if (!address) return;
-    api
-      .senderOrders(address)
-      .then((r) => setOrders(r.orders))
-      .catch(() => setOrders([]));
+    fetchOrders(address as `0x${string}`);
     const id = setInterval(() => {
-      api.senderOrders(address).then((r) => setOrders(r.orders)).catch(() => {});
-    }, 10_000);
+      fetchOrders(address as `0x${string}`);
+    }, 15_000);
     return () => clearInterval(id);
-  }, [address]);
+  }, [address, publicClient]);
 
   const ratioPct = cr ? Number(formatEther(cr as bigint)) * 100 : 0;
 
