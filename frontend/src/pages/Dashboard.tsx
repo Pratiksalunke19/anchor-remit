@@ -118,7 +118,11 @@ export default function Dashboard() {
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             {orders.map((o) => (
-              <OrderCard key={o.order_id} o={o} />
+              <OrderCard
+                key={o.order_id}
+                o={o}
+                onChanged={() => address && fetchOrders(address as `0x${string}`)}
+              />
             ))}
           </div>
         )}

@@ -8,7 +8,32 @@ import { remittanceVaultAbi, erc20Abi } from "../abi";
 import { contractAddresses } from "../wagmi.config";
 import { api } from "../api";
 import { motion } from "framer-motion";
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, ExternalLink, MessageCircle } from "lucide-react";
+import { usePersistedState } from "../hooks/usePersistedState";
+
+const FORM_KEY = "anchor-remit:send-form/v1";
+type PersistedForm = {
+  step: number;
+  musdAmount: string;
+  collateralBtc: string;
+  recipientPhone: string;
+  recipientAddress: string;
+  expiryHours: number;
+  pin: string;
+  orderId: `0x${string}` | null;
+  txHash: `0x${string}` | null;
+};
+const INITIAL_FORM: PersistedForm = {
+  step: 0,
+  musdAmount: "100",
+  collateralBtc: "0.005",
+  recipientPhone: "",
+  recipientAddress: "",
+  expiryHours: 72,
+  pin: "",
+  orderId: null,
+  txHash: null,
+};
 
 const STEPS = ["Amount", "PIN", "Approve", "Done"];
 
@@ -17,19 +42,26 @@ export default function Send() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
 
-  const [step, setStep] = useState(0);
-  const [musdAmount, setMusdAmount] = useState("100");
-  const [collateralBtc, setCollateralBtc] = useState("0.005");
-  const [recipientPhone, setRecipientPhone] = useState("");
-  const [recipientAddress, setRecipientAddress] = useState("");
-  const [expiryHours, setExpiryHours] = useState(72);
-  const [pin, setPin] = useState("");
+  const [form, setForm, clearForm] = usePersistedState<PersistedForm>(FORM_KEY, INITIAL_FORM);
+  const { step, musdAmount, collateralBtc, recipientPhone, recipientAddress, expiryHours, pin, orderId, txHash } = form;
+  const setStep = (v: number) => setForm((f) => ({ ...f, step: v }));
+  const setMusdAmount = (v: string) => setForm((f) => ({ ...f, musdAmount: v }));
+  const setCollateralBtc = (v: string) => setForm((f) => ({ ...f, collateralBtc: v }));
+  const setRecipientPhone = (v: string) => setForm((f) => ({ ...f, recipientPhone: v }));
+  const setRecipientAddress = (v: string) => setForm((f) => ({ ...f, recipientAddress: v }));
+  const setExpiryHours = (v: number) => setForm((f) => ({ ...f, expiryHours: v }));
+  const setPin = (v: string) => setForm((f) => ({ ...f, pin: v }));
+  const setOrderId = (v: `0x${string}` | null) => setForm((f) => ({ ...f, orderId: v }));
+  const setTxHash = (v: `0x${string}` | null) => setForm((f) => ({ ...f, txHash: v }));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [orderId, setOrderId] = useState<`0x${string}` | null>(null);
-  const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
   const [tbtcBalance, setTbtcBalance] = useState<bigint | null>(null);
   const [minting, setMinting] = useState(false);
+
+  function resetForm() {
+    clearForm();
+    setForm({ ...INITIAL_FORM });
+  }
 
   // fetch ERC20 tBTC balance
   async function fetchTbtcBalance() {
@@ -388,10 +420,32 @@ export default function Send() {
               <Copy className="w-3 h-3" /> Copy
             </button>
           </div>
+          <div className="rounded-lg bg-white/5 p-3">
+            <p className="text-xs text-white/50 mb-2">Share the PIN over a different channel:</p>
+            <div className="flex gap-2 flex-wrap">
+              <a
+                href={buildWhatsappLink(recipientPhone, claimLink, pin)}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-ghost text-xs py-1 px-3"
+              >
+                <MessageCircle className="w-3 h-3" /> Send PIN via WhatsApp
+              </a>
+              <button
+                className="btn-ghost text-xs py-1 px-3"
+                onClick={() => navigator.clipboard.writeText(pin)}
+              >
+                <Copy className="w-3 h-3" /> Copy PIN
+              </button>
+            </div>
+          </div>
           <div className="flex gap-2">
-            <Link to="/dashboard" className="btn-primary">
+            <Link to="/dashboard" className="btn-primary" onClick={resetForm}>
               Open dashboard
             </Link>
+            <button className="btn-ghost" onClick={resetForm}>
+              Send another
+            </button>
             {txHash && (
               <a
                 href={`https://explorer.test.mezo.org/tx/${txHash}`}
@@ -416,4 +470,11 @@ function Row({ k, v }: { k: string; v: string }) {
       <dd className="font-medium">{v}</dd>
     </div>
   );
+}
+
+function buildWhatsappLink(phone: string, claimLink: string, pin: string): string {
+  const text = `You've received a MUSD remittance.\n\nClaim link: ${claimLink}\nPIN: ${pin}`;
+  const cleaned = phone.replace(/[^\d]/g, "");
+  const base = cleaned ? `https://wa.me/${cleaned}` : `https://wa.me/`;
+  return `${base}?text=${encodeURIComponent(text)}`;
 }

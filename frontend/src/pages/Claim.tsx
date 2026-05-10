@@ -62,21 +62,56 @@ export default function Claim() {
   }, [orderId, publicClient]);
 
   async function submitClaim() {
-    if (!orderId || !walletClient || !publicClient) return;
+    if (!orderId || !walletClient || !publicClient || !address) return;
     setError(null);
     setLoading(true);
     try {
       const claimCodeHash = keccak256(toBytes(pin));
+
+      // Pre-simulate to catch wrong PIN / wrong recipient / expired before signing.
+      try {
+        await publicClient.simulateContract({
+          address: contractAddresses.remittanceVault,
+          abi: remittanceVaultAbi,
+          functionName: "claimRemittance",
+          args: [orderId as `0x${string}`, claimCodeHash],
+          account: address,
+        });
+      } catch (simErr: any) {
+        const reason = simErr?.shortMessage || simErr?.message || "";
+        if (/bad pin/i.test(reason)) {
+          throw new Error("Incorrect PIN. Please re-check the 6 digits with the sender.");
+        }
+        if (/not recipient/i.test(reason)) {
+          throw new Error("This order is locked to a different recipient wallet.");
+        }
+        if (/not pending/i.test(reason)) {
+          throw new Error("This remittance is no longer claimable (already claimed, cancelled, or liquidated).");
+        }
+        if (/expired/i.test(reason)) {
+          throw new Error("This remittance has expired and can no longer be claimed.");
+        }
+        throw new Error(reason || "Claim simulation reverted");
+      }
+
       const hash = await walletClient.writeContract({
         address: contractAddresses.remittanceVault,
         abi: remittanceVaultAbi,
         functionName: "claimRemittance",
         args: [orderId as `0x${string}`, claimCodeHash],
       });
-      await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") {
+        throw new Error("Claim transaction reverted on-chain. The PIN may be incorrect.");
+      }
       setStep(3);
     } catch (e: any) {
-      setError(e?.shortMessage || e?.message || "failed");
+      const msg = e?.shortMessage || e?.message || "failed";
+      setError(msg);
+      if (/incorrect pin|bad pin/i.test(msg)) {
+        setPin("");
+        setStep(1);
+      }
     } finally {
       setLoading(false);
     }

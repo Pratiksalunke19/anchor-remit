@@ -124,6 +124,40 @@ export const insurancePoolAbi = [
     inputs: [],
     outputs: [{ type: "uint256" }],
   },
+  {
+    type: "event",
+    name: "Deposited",
+    inputs: [
+      { name: "lp", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "sharesMinted", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "Withdrawn",
+    inputs: [
+      { name: "lp", type: "address", indexed: true },
+      { name: "sharesBurned", type: "uint256", indexed: false },
+      { name: "amount", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "ShortfallCovered",
+    inputs: [
+      { name: "orderId", type: "bytes32", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "FeeReceived",
+    inputs: [
+      { name: "orderId", type: "bytes32", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+    ],
+  },
 ] as const;
 
 export const erc20Abi = [
