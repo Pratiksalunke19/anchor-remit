@@ -1,0 +1,72 @@
+specVersion: 1.0.0
+description: Anchor Remit — RemittanceVault + InsurancePool indexer
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: RemittanceVault
+    network: mezo-testnet
+    source:
+      address: "0x518286f49FcC5a912DdAb30c0d2BA6aA4cC62490"
+      abi: RemittanceVault
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/remittance-vault.ts
+      entities:
+        - GlobalStats
+        - Remittance
+        - ClaimEvent
+        - CancelEvent
+        - LiquidationEvent
+        - CollateralTopUp
+        - CollateralWarningEvent
+      abis:
+        - name: RemittanceVault
+          file: ./abis/RemittanceVault.json
+      eventHandlers:
+        - event: RemittanceCreated(indexed bytes32,indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleRemittanceCreated
+        - event: RemittanceClaimed(indexed bytes32,indexed address,uint256,uint256)
+          handler: handleRemittanceClaimed
+        - event: RemittanceCancelled(indexed bytes32,indexed address,uint256)
+          handler: handleRemittanceCancelled
+        - event: CollateralToppedUp(indexed bytes32,uint256,uint256)
+          handler: handleCollateralToppedUp
+        - event: CollateralWarning(indexed bytes32,uint256)
+          handler: handleCollateralWarning
+        - event: LiquidationGuardTriggered(indexed bytes32,uint256)
+          handler: handleLiquidationGuardTriggered
+  - kind: ethereum
+    name: InsurancePool
+    network: mezo-testnet
+    source:
+      address: "0xBe1Be331Da23Ad394fA6Bb4dD84d24Aec5F26224"
+      abi: InsurancePool
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/insurance-pool.ts
+      entities:
+        - GlobalStats
+        - LpPosition
+        - LpDepositEvent
+        - LpWithdrawEvent
+        - ShortfallEvent
+        - FeeEvent
+      abis:
+        - name: InsurancePool
+          file: ./abis/InsurancePool.json
+      eventHandlers:
+        - event: Deposited(indexed address,uint256,uint256)
+          handler: handleDeposited
+        - event: Withdrawn(indexed address,uint256,uint256)
+          handler: handleWithdrawn
+        - event: ShortfallCovered(indexed bytes32,uint256)
+          handler: handleShortfallCovered
+        - event: FeeReceived(indexed bytes32,uint256)
+          handler: handleFeeReceived

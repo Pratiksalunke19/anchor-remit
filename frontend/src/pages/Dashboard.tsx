@@ -3,6 +3,7 @@ import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { formatEther } from "viem";
 import CollateralMeter from "../components/CollateralMeter";
 import OrderCard, { OrderRow } from "../components/OrderCard";
+import LiveFeed from "../components/LiveFeed";
 import { remittanceVaultAbi } from "../abi";
 import { contractAddresses } from "../wagmi.config";
 import { api } from "../api";
@@ -92,14 +93,21 @@ export default function Dashboard() {
 
   if (!address) {
     return (
-      <div className="card max-w-xl mx-auto text-center">
-        <p className="text-white/70">Connect a wallet to view your dashboard.</p>
+      <div className="space-y-8">
+        <LiveFeed />
+        <div className="card max-w-xl mx-auto text-center">
+          <p className="text-white/70">
+            Connect a wallet to view your personal dashboard.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
+      <LiveFeed />
+
       <div className="grid md:grid-cols-3 gap-6">
         <div className="card md:col-span-1">
           <h2 className="font-semibold mb-4">Vault collateral</h2>

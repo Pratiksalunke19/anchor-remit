@@ -1,0 +1,17 @@
+{
+  "name": "anchor-remit-subgraph",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Goldsky subgraph indexing RemittanceVault and InsurancePool events on Mezo Matsnet.",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy:goldsky": "goldsky subgraph deploy anchor-remit/0.1.0 --path .",
+    "create-local": "graph create --node http://localhost:8020 anchor-remit",
+    "deploy-local": "graph deploy --node http://localhost:8020 --ipfs http://localhost:5001 anchor-remit"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "0.79.0",
+    "@graphprotocol/graph-ts": "0.32.0"
+  }
+}

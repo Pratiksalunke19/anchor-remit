@@ -1,0 +1,175 @@
+"""
+Aggregate counters across the entire protocol. Singleton id = "global".
+"""
+type GlobalStats @entity {
+  id: ID!
+
+  # remittance counters
+  totalRemittances: BigInt!
+  totalClaimed: BigInt!
+  totalCancelled: BigInt!
+  totalLiquidated: BigInt!
+
+  # value flowing through the vault (cumulative)
+  totalMusdLocked: BigInt!
+  totalMusdSettled: BigInt!
+  totalCollateralLocked: BigInt!
+
+  # insurance pool
+  totalLpDeposited: BigInt!
+  totalLpWithdrawn: BigInt!
+  totalShortfallCovered: BigInt!
+  totalFeesAccrued: BigInt!
+  poolReserve: BigInt!     # running estimate (deposits - withdrawals - shortfalls + fees)
+  totalShares: BigInt!
+
+  lastUpdatedBlock: BigInt!
+  lastUpdatedTimestamp: BigInt!
+}
+
+enum RemittanceStatus {
+  PENDING
+  CLAIMED
+  CANCELLED
+  LIQUIDATED
+}
+
+"""
+A remittance order. id = orderId (bytes32, hex string).
+"""
+type Remittance @entity {
+  id: ID!
+  orderId: Bytes!
+  sender: Bytes!
+  recipient: Bytes!
+  musdAmount: BigInt!
+  collateralBTC: BigInt!
+  expiryTimestamp: BigInt!
+  status: RemittanceStatus!
+
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  createdTxHash: Bytes!
+
+  claimedAt: BigInt
+  claimedBy: Bytes
+  claimedAmount: BigInt
+  claimTxHash: Bytes
+
+  cancelledAt: BigInt
+  cancelRefundBTC: BigInt
+  cancelTxHash: Bytes
+
+  liquidatedAt: BigInt
+  liquidationCovered: BigInt
+  liquidationTxHash: Bytes
+
+  topUps: [CollateralTopUp!]! @derivedFrom(field: "remittance")
+  warnings: [CollateralWarningEvent!]! @derivedFrom(field: "remittance")
+}
+
+"""
+Settled-remittance feed entry (CLAIMED). Indexed for global activity feed.
+"""
+type ClaimEvent @entity(immutable: true) {
+  id: ID!                       # txHash-logIndex
+  orderId: Bytes!
+  remittance: Remittance!
+  recipient: Bytes!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type CancelEvent @entity(immutable: true) {
+  id: ID!
+  orderId: Bytes!
+  remittance: Remittance!
+  sender: Bytes!
+  refundBTC: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type LiquidationEvent @entity(immutable: true) {
+  id: ID!
+  orderId: Bytes!
+  remittance: Remittance!
+  covered: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type CollateralTopUp @entity(immutable: true) {
+  id: ID!
+  orderId: Bytes!
+  remittance: Remittance!
+  addedBTC: BigInt!
+  newRatio: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type CollateralWarningEvent @entity(immutable: true) {
+  id: ID!
+  orderId: Bytes!
+  remittance: Remittance!
+  ratio: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+# -------------------- InsurancePool --------------------
+
+type LpPosition @entity {
+  id: ID!                       # lp address
+  lp: Bytes!
+  shares: BigInt!
+  totalDeposited: BigInt!
+  totalWithdrawn: BigInt!
+  firstDepositAt: BigInt
+  lastActionAt: BigInt!
+}
+
+type LpDepositEvent @entity(immutable: true) {
+  id: ID!
+  lp: Bytes!
+  amount: BigInt!
+  sharesMinted: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type LpWithdrawEvent @entity(immutable: true) {
+  id: ID!
+  lp: Bytes!
+  amount: BigInt!
+  sharesBurned: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type ShortfallEvent @entity(immutable: true) {
+  id: ID!
+  orderId: Bytes!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type FeeEvent @entity(immutable: true) {
+  id: ID!
+  orderId: Bytes!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
