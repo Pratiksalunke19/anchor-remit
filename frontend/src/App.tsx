@@ -6,12 +6,14 @@ import Send from "./pages/Send";
 import Claim from "./pages/Claim";
 import Dashboard from "./pages/Dashboard";
 import Pool from "./pages/Pool";
+import Profile from "./pages/Profile";
 
 const nav = [
   { to: "/", label: "Home" },
   { to: "/send", label: "Send" },
   { to: "/dashboard", label: "Dashboard" },
   { to: "/pool", label: "Pool" },
+  { to: "/profile", label: "Profile" },
 ];
 
 export default function App() {
@@ -21,9 +23,11 @@ export default function App() {
       <header className="sticky top-0 z-30 backdrop-blur-lg bg-ink/70 border-b border-white/10">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-            <span className="w-7 h-7 rounded-md bg-btc flex items-center justify-center text-ink">
-              ₿
-            </span>
+            <img
+              src="/anchor-remittance-logo.png"
+              alt="Anchor Remit"
+              className="w-8 h-8 rounded-md object-contain"
+            />
             Anchor Remit
           </Link>
           <nav className="hidden md:flex items-center gap-1">
@@ -61,6 +65,7 @@ export default function App() {
               <Route path="/claim/:orderId" element={<Claim />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pool" element={<Pool />} />
+              <Route path="/profile" element={<Profile />} />
             </Routes>
           </motion.div>
         </AnimatePresence>

@@ -57,4 +57,7 @@ export const api = {
   senderOrders(address: string) {
     return req<{ orders: any[] }>(`/api/remittance/sender/${address}`);
   },
+  recipientOrders(address: string) {
+    return req<{ orders: any[] }>(`/api/remittance/recipient/${address}`);
+  },
 };

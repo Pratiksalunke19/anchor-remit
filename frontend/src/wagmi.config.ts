@@ -31,6 +31,7 @@ export const contractAddresses = {
   insurancePool: (import.meta.env.VITE_INSURANCE_POOL || "0x0000000000000000000000000000000000000000") as `0x${string}`,
   musd: (import.meta.env.VITE_MUSD_TOKEN || "0x0000000000000000000000000000000000000000") as `0x${string}`,
   btc: (import.meta.env.VITE_BTC_TOKEN || "0x0000000000000000000000000000000000000000") as `0x${string}`,
+  mezoVault: (import.meta.env.VITE_MEZO_VAULT || "0x0000000000000000000000000000000000000000") as `0x${string}`,
 };
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";

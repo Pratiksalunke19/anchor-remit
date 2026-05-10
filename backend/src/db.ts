@@ -144,6 +144,15 @@ export const orderRepo = {
     if (result.length === 0) return [];
     return result[0].values.map((row) => rowToOrderRow(row as string[]));
   },
+  listForRecipient(recipient: string): OrderRow[] {
+    const d = ensureDb() as { exec: (sql: string, params: unknown[]) => { length: number; values: unknown[][] }[] };
+    const result = d.exec(
+      "SELECT * FROM orders WHERE lower(recipient) = lower(?) ORDER BY created_at DESC",
+      [recipient],
+    );
+    if (result.length === 0) return [];
+    return result[0].values.map((row) => rowToOrderRow(row as string[]));
+  },
 };
 
 export const watcherState = {

@@ -7,10 +7,14 @@ import { remittanceVaultAbi } from "../abi";
 import { contractAddresses } from "../wagmi.config";
 import { api } from "../api";
 
+type Tab = "sent" | "received";
+
 export default function Dashboard() {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [received, setReceived] = useState<OrderRow[]>([]);
+  const [tab, setTab] = useState<Tab>("sent");
 
   const { data: cr } = useReadContract({
     address: contractAddresses.remittanceVault,
@@ -19,14 +23,17 @@ export default function Dashboard() {
     query: { refetchInterval: 10_000 },
   });
 
-  async function fetchOnChainOrders(addr: `0x${string}`) {
-    if (!publicClient) return;
+  async function fetchOnChainOrders(
+    addr: `0x${string}`,
+    role: "sender" | "recipient",
+  ): Promise<OrderRow[]> {
+    if (!publicClient) return [];
     const statusMap = ["PENDING", "CLAIMED", "CANCELLED", "LIQUIDATED"];
     const logs = await publicClient.getContractEvents({
       address: contractAddresses.remittanceVault,
       abi: remittanceVaultAbi,
       eventName: "RemittanceCreated",
-      args: { sender: addr },
+      args: role === "sender" ? { sender: addr } : { recipient: addr },
       fromBlock: 0n,
     });
     const rows: OrderRow[] = [];
@@ -52,16 +59,23 @@ export default function Dashboard() {
         // skip unreadable orders
       }
     }
-    setOrders(rows);
+    return rows;
   }
 
   async function fetchOrders(addr: `0x${string}`) {
+    // sent
     try {
       const r = await api.senderOrders(addr);
       setOrders(r.orders);
     } catch {
-      // backend down — fall back to on-chain
-      await fetchOnChainOrders(addr);
+      setOrders(await fetchOnChainOrders(addr, "sender"));
+    }
+    // received
+    try {
+      const r = await api.recipientOrders(addr);
+      setReceived(r.orders);
+    } catch {
+      setReceived(await fetchOnChainOrders(addr, "recipient"));
     }
   }
 
@@ -93,15 +107,16 @@ export default function Dashboard() {
         </div>
         <div className="card md:col-span-2">
           <h2 className="font-semibold mb-4">Summary</h2>
-          <div className="grid grid-cols-3 gap-4">
-            <Stat label="Your orders" value={orders.length.toString()} />
+          <div className="grid grid-cols-4 gap-4">
+            <Stat label="Sent" value={orders.length.toString()} />
+            <Stat label="Received" value={received.length.toString()} />
             <Stat
-              label="Active"
+              label="Active sent"
               value={orders.filter((o) => o.status === "PENDING").length.toString()}
             />
             <Stat
-              label="Claimed"
-              value={orders.filter((o) => o.status === "CLAIMED").length.toString()}
+              label="Claimable"
+              value={received.filter((o) => o.status === "PENDING").length.toString()}
             />
           </div>
           <p className="text-xs text-white/40 mt-6">
@@ -112,12 +127,39 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-4">Your remittances</h2>
-        {orders.length === 0 ? (
-          <div className="card text-white/60">No remittances yet. Send one to get started.</div>
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-xl font-semibold">Your remittances</h2>
+          <div className="ml-auto flex gap-1 bg-white/5 rounded-lg p-1">
+            <TabBtn active={tab === "sent"} onClick={() => setTab("sent")}>
+              Sent ({orders.length})
+            </TabBtn>
+            <TabBtn active={tab === "received"} onClick={() => setTab("received")}>
+              Received ({received.length})
+            </TabBtn>
+          </div>
+        </div>
+        {tab === "sent" ? (
+          orders.length === 0 ? (
+            <div className="card text-white/60">No remittances sent yet.</div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {orders.map((o) => (
+                <OrderCard
+                  key={o.order_id}
+                  o={o}
+                  onChanged={() => address && fetchOrders(address as `0x${string}`)}
+                />
+              ))}
+            </div>
+          )
+        ) : received.length === 0 ? (
+          <div className="card text-white/60">
+            No incoming remittances yet. Once someone sends to your wallet, it
+            will appear here.
+          </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
-            {orders.map((o) => (
+            {received.map((o) => (
               <OrderCard
                 key={o.order_id}
                 o={o}
@@ -128,6 +170,27 @@ export default function Dashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-md text-sm transition ${
+        active ? "bg-white/10 text-white" : "text-white/60 hover:text-white"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 

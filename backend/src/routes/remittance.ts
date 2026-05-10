@@ -171,3 +171,12 @@ remittanceRouter.get("/sender/:address", (req, res) => {
   const rows = orderRepo.listForSender(address);
   res.json({ orders: rows });
 });
+
+remittanceRouter.get("/recipient/:address", (req, res) => {
+  const address = req.params.address;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    return res.status(400).json({ error: "invalid address" });
+  }
+  const rows = orderRepo.listForRecipient(address);
+  res.json({ orders: rows });
+});

@@ -1,15 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import { parseEventLogs, formatEther, keccak256, parseEther, toBytes } from "viem";
 import StepIndicator from "../components/StepIndicator";
 import PinInput from "../components/PinInput";
-import { remittanceVaultAbi, erc20Abi } from "../abi";
+import { remittanceVaultAbi, erc20Abi, mezoVaultAbi } from "../abi";
 import { contractAddresses } from "../wagmi.config";
 import { api } from "../api";
 import { motion } from "framer-motion";
-import { Copy, ExternalLink, MessageCircle } from "lucide-react";
+import { Copy, ExternalLink, MessageCircle, Users } from "lucide-react";
 import { usePersistedState } from "../hooks/usePersistedState";
+import { useProfile } from "../hooks/useContacts";
 
 const FORM_KEY = "anchor-remit:send-form/v1";
 type PersistedForm = {
@@ -57,11 +58,78 @@ export default function Send() {
   const [error, setError] = useState<string | null>(null);
   const [tbtcBalance, setTbtcBalance] = useState<bigint | null>(null);
   const [minting, setMinting] = useState(false);
+  const [btcPriceUsd, setBtcPriceUsd] = useState<bigint | null>(null);
+  const [vaultCollat, setVaultCollat] = useState<bigint>(0n);
+  const [vaultDebt, setVaultDebt] = useState<bigint>(0n);
+
+  const { profile } = useProfile();
 
   function resetForm() {
     clearForm();
     setForm({ ...INITIAL_FORM });
   }
+
+  // load mezo vault state to compute real-time health factor
+  async function fetchVaultState() {
+    if (!publicClient) return;
+    const mezoAddr = contractAddresses.mezoVault;
+    if (!mezoAddr || /^0x0+$/.test(mezoAddr)) return;
+    try {
+      const [price, collat, debt] = await Promise.all([
+        publicClient.readContract({
+          address: mezoAddr,
+          abi: mezoVaultAbi,
+          functionName: "btcPriceUsd",
+        }) as Promise<bigint>,
+        publicClient.readContract({
+          address: mezoAddr,
+          abi: mezoVaultAbi,
+          functionName: "collateralOf",
+          args: [contractAddresses.remittanceVault],
+        }) as Promise<bigint>,
+        publicClient.readContract({
+          address: mezoAddr,
+          abi: mezoVaultAbi,
+          functionName: "debtOf",
+          args: [contractAddresses.remittanceVault],
+        }) as Promise<bigint>,
+      ]);
+      setBtcPriceUsd(price);
+      setVaultCollat(collat);
+      setVaultDebt(debt);
+    } catch (e) {
+      console.warn("[send] vault state read failed", e);
+    }
+  }
+
+  useEffect(() => {
+    fetchVaultState();
+  }, [publicClient]);
+
+  // Combined CR after this new order = (vaultCollatUsd + newCollatUsd) / (vaultDebt + musd)
+  // Required minimum is 150% (1.5e18 in mock).
+  const MIN_CR = 1.5;
+  const SAFE_CR = 1.75;
+  const healthFactor = useMemo(() => {
+    if (!btcPriceUsd) return null;
+    const m = Number(musdAmount);
+    const c = Number(collateralBtc);
+    if (!isFinite(m) || !isFinite(c) || m <= 0 || c <= 0) return null;
+    try {
+      const newCollat = parseEther(collateralBtc);
+      const newMusd = parseEther(musdAmount);
+      const totalCollatUsd = ((vaultCollat + newCollat) * btcPriceUsd) / 10n ** 18n;
+      const totalDebt = vaultDebt + newMusd;
+      if (totalDebt === 0n) return null;
+      // CR scaled 1e18; convert to float
+      const crBig = (totalCollatUsd * 10n ** 18n) / totalDebt;
+      return Number(crBig) / 1e18;
+    } catch {
+      return null;
+    }
+  }, [musdAmount, collateralBtc, btcPriceUsd, vaultCollat, vaultDebt]);
+
+  const collateralOk = healthFactor === null ? true : healthFactor >= MIN_CR;
 
   // fetch ERC20 tBTC balance
   async function fetchTbtcBalance() {
@@ -96,13 +164,14 @@ export default function Send() {
     }
   }
 
-  // refresh balance when wallet connects or step changes
-  useState(() => { fetchTbtcBalance(); });
+  // refresh balance when wallet connects
+  useEffect(() => { fetchTbtcBalance(); }, [address, publicClient]);
 
   const canNext0 =
     Number(musdAmount) > 0 &&
     Number(collateralBtc) > 0 &&
-    (recipientPhone || recipientAddress);
+    (recipientPhone || recipientAddress) &&
+    collateralOk;
 
   const canNext1 = /^\d{6}$/.test(pin);
 
@@ -287,6 +356,46 @@ export default function Send() {
               Aim for ≥ 150% collateralization to stay safe.
             </p>
           </div>
+          {/* real-time health factor */}
+          <HealthFactor
+            cr={healthFactor}
+            min={MIN_CR}
+            safe={SAFE_CR}
+            priceUsd={btcPriceUsd ? Number(formatEther(btcPriceUsd)) : null}
+          />
+          {profile.contacts.length > 0 && (
+            <div>
+              <label className="label flex items-center gap-2">
+                <Users className="w-3 h-3" /> Saved recipients
+              </label>
+              <select
+                className="input"
+                value=""
+                onChange={(e) => {
+                  const c = profile.contacts.find((x) => x.id === e.target.value);
+                  if (!c) return;
+                  setRecipientAddress(c.address || "");
+                  setRecipientPhone(c.phone || "");
+                }}
+              >
+                <option value="">Select a saved contact…</option>
+                {profile.contacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                    {c.address ? ` · ${c.address.slice(0, 6)}…${c.address.slice(-4)}` : ""}
+                    {c.phone ? ` · ${c.phone}` : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-white/40 mt-1">
+                Manage contacts in your{" "}
+                <Link to="/profile" className="text-btc hover:underline">
+                  Profile
+                </Link>
+                .
+              </p>
+            </div>
+          )}
           <div className="grid md:grid-cols-2 gap-3">
             <div>
               <label className="label">Recipient phone (optional)</label>
@@ -307,6 +416,7 @@ export default function Send() {
               />
             </div>
           </div>
+
           <div>
             <label className="label">Expiry</label>
             <div className="flex gap-2">
@@ -468,6 +578,67 @@ function Row({ k, v }: { k: string; v: string }) {
     <div className="flex justify-between py-2">
       <dt className="text-white/60">{k}</dt>
       <dd className="font-medium">{v}</dd>
+    </div>
+  );
+}
+
+function HealthFactor({
+  cr,
+  min,
+  safe,
+  priceUsd,
+}: {
+  cr: number | null;
+  min: number;
+  safe: number;
+  priceUsd: number | null;
+}) {
+  if (cr === null) {
+    return (
+      <div className="rounded-lg bg-white/5 p-3 text-xs text-white/50">
+        Enter MUSD amount and BTC collateral to see your health factor.
+      </div>
+    );
+  }
+  const status: "danger" | "warn" | "ok" =
+    cr < min ? "danger" : cr < safe ? "warn" : "ok";
+  const colors = {
+    danger: "border-danger/40 bg-danger/10 text-danger",
+    warn: "border-btc/40 bg-btc/10 text-btc",
+    ok: "border-ok/40 bg-ok/10 text-ok",
+  } as const;
+  const pct = Math.min(cr / (safe * 1.2), 1) * 100;
+  const barColor = {
+    danger: "bg-danger",
+    warn: "bg-btc",
+    ok: "bg-ok",
+  } as const;
+  return (
+    <div className={`rounded-lg border p-3 space-y-2 ${colors[status]}`}>
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium">Health factor</span>
+        <span className="font-mono">
+          {(cr * 100).toFixed(1)}% {status === "danger" ? "✗ too low" : status === "warn" ? "⚠ tight" : "✓ safe"}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div
+          className={`h-full ${barColor[status]} transition-all`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="text-xs opacity-80">
+        {status === "danger"
+          ? `Collateral too low. Minimum ${(min * 100).toFixed(0)}% required — increase BTC or lower MUSD.`
+          : status === "warn"
+          ? `Above minimum but tight. Aim for ≥ ${(safe * 100).toFixed(0)}% to absorb price moves.`
+          : `Comfortably collateralized.`}
+        {priceUsd !== null && (
+          <span className="block mt-0.5 text-white/40">
+            Reference BTC price: ${priceUsd.toLocaleString()}
+          </span>
+        )}
+      </p>
     </div>
   );
 }
