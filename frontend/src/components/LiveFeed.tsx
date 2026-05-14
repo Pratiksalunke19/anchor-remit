@@ -77,13 +77,13 @@ export default function LiveFeed() {
 
   if (!goldskyEnabled) {
     return (
-      <div className="card text-white/60 text-sm">
-        <div className="flex items-center gap-2 mb-1 text-white/80 font-medium">
+      <div className="card text-ivory/60 text-sm">
+        <div className="flex items-center gap-2 mb-1 text-ivory/80 font-medium">
           <Activity className="w-4 h-4" /> Live feed (offline)
         </div>
         Set <code className="text-btc">VITE_GOLDSKY_SUBGRAPH_URL</code> to enable
         the Goldsky-indexed live dashboard. Deploy the subgraph from{" "}
-        <code className="text-white/80">/subgraph</code> and paste the endpoint
+        <code className="text-ivory/80">/subgraph</code> and paste the endpoint
         into your <code>frontend/.env</code>.
       </div>
     );
@@ -94,7 +94,7 @@ export default function LiveFeed() {
       <div className="flex items-center gap-2">
         <Activity className="w-4 h-4 text-ok animate-pulse" />
         <h2 className="text-xl font-semibold">Live activity</h2>
-        <span className="text-xs text-white/40 ml-2">
+        <span className="text-xs text-ivory/40 ml-2">
           via Goldsky · refreshes every {POLL_MS / 1000}s
         </span>
       </div>
@@ -104,7 +104,7 @@ export default function LiveFeed() {
       )}
 
       {loading && !stats ? (
-        <div className="card text-white/60">Loading live data…</div>
+        <div className="card text-ivory/60">Loading live data…</div>
       ) : (
         <>
           {stats && (
@@ -140,22 +140,22 @@ export default function LiveFeed() {
             <div className="card">
               <h3 className="font-semibold mb-3">Settled remittances</h3>
               {claims.length === 0 ? (
-                <p className="text-white/50 text-sm">No claims yet — be the first.</p>
+                <p className="text-ivory/50 text-sm">No claims yet — be the first.</p>
               ) : (
-                <ul className="divide-y divide-white/5 text-sm">
+                <ul className="divide-y divide-ivory/5 text-sm">
                   {claims.map((c) => (
                     <li key={c.id} className="py-2 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="font-medium">
                           {fmtMusd(c.amount)} MUSD
                         </div>
-                        <div className="text-xs text-white/50 truncate">
+                        <div className="text-xs text-ivory/50 truncate">
                           {shortAddr(c.remittance.sender)}{" "}
                           <ArrowRight className="inline w-3 h-3 mx-0.5 -mt-0.5" />{" "}
                           {shortAddr(c.recipient)}
                         </div>
                       </div>
-                      <div className="text-xs text-white/40 whitespace-nowrap">
+                      <div className="text-xs text-ivory/40 whitespace-nowrap">
                         {relTime(c.timestamp)}
                       </div>
                     </li>
@@ -167,17 +167,17 @@ export default function LiveFeed() {
             <div className="card">
               <h3 className="font-semibold mb-3">New remittances</h3>
               {recent.length === 0 ? (
-                <p className="text-white/50 text-sm">No remittances indexed yet.</p>
+                <p className="text-ivory/50 text-sm">No remittances indexed yet.</p>
               ) : (
-                <ul className="divide-y divide-white/5 text-sm">
+                <ul className="divide-y divide-ivory/5 text-sm">
                   {recent.map((r) => (
                     <li key={r.id} className="py-2 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="font-medium">
                           {fmtMusd(r.musdAmount)} MUSD ·{" "}
-                          <span className="text-white/50">{r.status}</span>
+                          <span className="text-ivory/50">{r.status}</span>
                         </div>
-                        <div className="text-xs text-white/50 truncate">
+                        <div className="text-xs text-ivory/50 truncate">
                           {shortAddr(r.sender)}{" "}
                           <ArrowRight className="inline w-3 h-3 mx-0.5 -mt-0.5" />{" "}
                           {r.recipient === "0x0000000000000000000000000000000000000000"
@@ -185,7 +185,7 @@ export default function LiveFeed() {
                             : shortAddr(r.recipient)}
                         </div>
                       </div>
-                      <div className="text-xs text-white/40 whitespace-nowrap">
+                      <div className="text-xs text-ivory/40 whitespace-nowrap">
                         {relTime(r.createdAt)}
                       </div>
                     </li>
@@ -198,11 +198,11 @@ export default function LiveFeed() {
           {lps.length > 0 && (
             <div className="card">
               <h3 className="font-semibold mb-3">Top LPs</h3>
-              <ul className="divide-y divide-white/5 text-sm">
+              <ul className="divide-y divide-ivory/5 text-sm">
                 {lps.map((p) => (
                   <li key={p.id} className="py-2 flex items-center justify-between">
-                    <span className="font-mono text-white/80">{shortAddr(p.lp)}</span>
-                    <span className="text-white/60">
+                    <span className="font-mono text-ivory/80">{shortAddr(p.lp)}</span>
+                    <span className="text-ivory/60">
                       {fmtMusd(p.totalDeposited)} MUSD deposited ·{" "}
                       {p.shares} shares
                     </span>
@@ -230,11 +230,11 @@ function KpiCard({
 }) {
   return (
     <div className="card">
-      <div className="flex items-center gap-2 text-white/60 text-xs uppercase tracking-wide">
+      <div className="flex items-center gap-2 text-ivory/60 text-xs uppercase tracking-wide">
         {icon} {label}
       </div>
       <div className="text-2xl font-bold mt-2">{value}</div>
-      {sub && <div className="text-xs text-white/40 mt-1">{sub}</div>}
+      {sub && <div className="text-xs text-ivory/40 mt-1">{sub}</div>}
     </div>
   );
 }

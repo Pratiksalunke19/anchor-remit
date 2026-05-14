@@ -323,10 +323,13 @@ export default function Send() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">Send MUSD</h1>
-      <p className="text-white/60 mb-8">
-        Lock BTC as collateral, mint MUSD, and share a claim link with your recipient.
-      </p>
+      <div className="mb-8">
+        <span className="eyebrow">New transfer</span>
+        <h1 className="font-display text-4xl text-ivory mt-2">Send MUSD</h1>
+        <p className="text-ivory/60 mt-2 max-w-xl leading-relaxed">
+          Lock BTC as collateral, mint MUSD, and share a secure claim link with your recipient.
+        </p>
+      </div>
 
       <StepIndicator steps={STEPS} current={step} />
 
@@ -352,7 +355,7 @@ export default function Send() {
               onChange={(e) => setCollateralBtc(e.target.value)}
               placeholder="0.005"
             />
-            <p className="text-xs text-white/40 mt-1">
+            <p className="text-xs text-ivory/40 mt-1">
               Aim for ≥ 150% collateralization to stay safe.
             </p>
           </div>
@@ -387,7 +390,7 @@ export default function Send() {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-white/40 mt-1">
+              <p className="text-xs text-ivory/40 mt-1">
                 Manage contacts in your{" "}
                 <Link to="/profile" className="text-btc hover:underline">
                   Profile
@@ -427,7 +430,7 @@ export default function Send() {
                   className={`flex-1 py-2 rounded-lg border transition ${
                     expiryHours === h
                       ? "border-btc bg-btc/10 text-btc"
-                      : "border-white/10 text-white/70 hover:bg-white/5"
+                      : "border-ivory/10 text-ivory/70 hover:bg-ivory/5"
                   }`}
                 >
                   {h}h
@@ -436,9 +439,9 @@ export default function Send() {
             </div>
           </div>
           {/* tBTC balance + faucet */}
-          <div className="rounded-lg bg-white/5 p-3 flex items-center justify-between">
+          <div className="rounded-lg bg-ivory/5 p-3 flex items-center justify-between">
             <div>
-              <p className="text-xs text-white/50">Your tBTC (ERC20) balance</p>
+              <p className="text-xs text-ivory/50">Your tBTC (ERC20) balance</p>
               <p className="font-medium">
                 {tbtcBalance !== null ? formatEther(tbtcBalance) : "—"} tBTC
               </p>
@@ -468,7 +471,7 @@ export default function Send() {
         <motion.div className="card space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <div>
             <h3 className="font-semibold mb-1">Set the 6-digit claim PIN</h3>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-ivory/60">
               Your recipient will need this PIN to claim. Share it over a
               different channel (call / in person), never with the link.
             </p>
@@ -488,7 +491,7 @@ export default function Send() {
       {step === 2 && (
         <motion.div className="card space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <h3 className="font-semibold">Review & sign</h3>
-          <dl className="text-sm divide-y divide-white/10">
+          <dl className="text-sm divide-y divide-ivory/10">
             <Row k="Amount" v={`${musdAmount} MUSD`} />
             <Row k="Collateral" v={`${collateralBtc} BTC`} />
             <Row k="Recipient" v={recipientAddress || recipientPhone || "—"} />
@@ -505,23 +508,24 @@ export default function Send() {
             </button>
           </div>
           {!address && (
-            <p className="text-xs text-white/50 text-right">Connect a wallet to continue.</p>
+            <p className="text-xs text-ivory/50 text-right">Connect a wallet to continue.</p>
           )}
         </motion.div>
       )}
 
       {step === 3 && orderId && (
         <motion.div className="card space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-ok/20 text-ok flex items-center justify-center">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-forest/15 border border-forest/30 text-forest-300 flex items-center justify-center text-lg">
               ✓
             </div>
             <div>
-              <h3 className="font-semibold text-lg">Remittance created</h3>
-              <p className="text-sm text-white/60">Share the claim link below with your recipient.</p>
+              <span className="eyebrow">Confirmed on Mezo</span>
+              <h3 className="font-display text-2xl text-ivory mt-1">Remittance created</h3>
+              <p className="text-sm text-ivory/60">Share the claim link below with your recipient.</p>
             </div>
           </div>
-          <div className="rounded-lg bg-black/40 p-4 flex items-center justify-between gap-2">
+          <div className="rounded-lg bg-charcoal-900/40 p-4 flex items-center justify-between gap-2">
             <code className="text-xs break-all">{claimLink}</code>
             <button
               onClick={() => navigator.clipboard.writeText(claimLink)}
@@ -530,8 +534,8 @@ export default function Send() {
               <Copy className="w-3 h-3" /> Copy
             </button>
           </div>
-          <div className="rounded-lg bg-white/5 p-3">
-            <p className="text-xs text-white/50 mb-2">Share the PIN over a different channel:</p>
+          <div className="rounded-lg bg-ivory/5 p-3">
+            <p className="text-xs text-ivory/50 mb-2">Share the PIN over a different channel:</p>
             <div className="flex gap-2 flex-wrap">
               <a
                 href={buildWhatsappLink(recipientPhone, claimLink, pin)}
@@ -576,7 +580,7 @@ export default function Send() {
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between py-2">
-      <dt className="text-white/60">{k}</dt>
+      <dt className="text-ivory/60">{k}</dt>
       <dd className="font-medium">{v}</dd>
     </div>
   );
@@ -595,7 +599,7 @@ function HealthFactor({
 }) {
   if (cr === null) {
     return (
-      <div className="rounded-lg bg-white/5 p-3 text-xs text-white/50">
+      <div className="rounded-lg bg-ivory/5 p-3 text-xs text-ivory/50">
         Enter MUSD amount and BTC collateral to see your health factor.
       </div>
     );
@@ -621,7 +625,7 @@ function HealthFactor({
           {(cr * 100).toFixed(1)}% {status === "danger" ? "✗ too low" : status === "warn" ? "⚠ tight" : "✓ safe"}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-ivory/10 overflow-hidden">
         <div
           className={`h-full ${barColor[status]} transition-all`}
           style={{ width: `${pct}%` }}
@@ -634,7 +638,7 @@ function HealthFactor({
           ? `Above minimum but tight. Aim for ≥ ${(safe * 100).toFixed(0)}% to absorb price moves.`
           : `Comfortably collateralized.`}
         {priceUsd !== null && (
-          <span className="block mt-0.5 text-white/40">
+          <span className="block mt-0.5 text-ivory/40">
             Reference BTC price: ${priceUsd.toLocaleString()}
           </span>
         )}

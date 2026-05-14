@@ -41,6 +41,16 @@ export const remittanceVaultAbi = [
   },
   {
     type: "function",
+    name: "repayAndUnlock",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "orderId", type: "bytes32" },
+      { name: "musdRepay", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "vaultCollateralRatio",
     stateMutability: "view",
     inputs: [],
@@ -62,6 +72,8 @@ export const remittanceVaultAbi = [
           { name: "expiryTimestamp", type: "uint256" },
           { name: "claimCode", type: "bytes32" },
           { name: "status", type: "uint8" },
+          { name: "musdRepaid", type: "uint256" },
+          { name: "btcUnlocked", type: "uint256" },
         ],
         type: "tuple",
       },
@@ -77,6 +89,18 @@ export const remittanceVaultAbi = [
       { name: "musdAmount", type: "uint256", indexed: false },
       { name: "collateralBTC", type: "uint256", indexed: false },
       { name: "expiryTimestamp", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "CollateralUnlocked",
+    inputs: [
+      { name: "orderId", type: "bytes32", indexed: true },
+      { name: "sender", type: "address", indexed: true },
+      { name: "musdRepaid", type: "uint256", indexed: false },
+      { name: "btcOut", type: "uint256", indexed: false },
+      { name: "musdRemaining", type: "uint256", indexed: false },
+      { name: "btcRemaining", type: "uint256", indexed: false },
     ],
   },
 ] as const;

@@ -5,23 +5,31 @@ type Props = {
 
 export default function StepIndicator({ steps, current }: Props) {
   return (
-    <div className="flex items-center gap-2 mb-8">
+    <div className="flex items-center gap-3 mb-10">
       {steps.map((label, i) => {
         const active = i === current;
         const done = i < current;
         return (
-          <div key={label} className="flex-1 flex items-center gap-2">
+          <div key={label} className="flex-1 flex items-center gap-2.5">
             <div
-              className={`flex-1 h-1.5 rounded-full transition ${
-                done ? "bg-btc" : active ? "bg-btc/60" : "bg-white/10"
+              className={`flex-1 h-[3px] rounded-full transition-all duration-500 ${
+                done
+                  ? "bg-amber-sheen"
+                  : active
+                  ? "bg-amber/60"
+                  : "bg-ivory/10"
               }`}
             />
             <span
-              className={`text-xs font-medium whitespace-nowrap ${
-                active ? "text-btc" : done ? "text-white/80" : "text-white/40"
+              className={`text-[11px] font-semibold uppercase tracking-[0.18em] whitespace-nowrap transition ${
+                active
+                  ? "text-amber-300"
+                  : done
+                  ? "text-ivory/80"
+                  : "text-ivory/35"
               }`}
             >
-              {i + 1}. {label}
+              {String(i + 1).padStart(2, "0")} · {label}
             </span>
           </div>
         );

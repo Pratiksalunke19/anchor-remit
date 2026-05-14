@@ -55,6 +55,31 @@ export async function startChainWatcher() {
     publicClient.watchContractEvent({
       address: addresses.remittanceVault,
       abi: remittanceVaultAbi,
+      eventName: "CollateralUnlocked",
+      onLogs: async (logs) => {
+        for (const log of logs) {
+          const { orderId, musdRepaid, btcOut, musdRemaining, btcRemaining } = log.args as any;
+          const prev = orderRepo.get(orderId);
+          const prevRepaid = BigInt(prev?.musd_repaid ?? "0");
+          const prevUnlocked = BigInt(prev?.btc_unlocked ?? "0");
+          const fullySettled =
+            (musdRemaining as bigint) === 0n && (btcRemaining as bigint) === 0n;
+          orderRepo.upsert({
+            order_id: orderId,
+            musd_repaid: (prevRepaid + (musdRepaid as bigint)).toString(),
+            btc_unlocked: (prevUnlocked + (btcOut as bigint)).toString(),
+            status: fullySettled ? "SETTLED" : prev?.status ?? "CLAIMED",
+          });
+          console.log(
+            `[watcher] CollateralUnlocked ${orderId} repaid=${musdRepaid} btc=${btcOut} settled=${fullySettled}`,
+          );
+        }
+      },
+    });
+
+    publicClient.watchContractEvent({
+      address: addresses.remittanceVault,
+      abi: remittanceVaultAbi,
       eventName: "CollateralWarning",
       onLogs: async (logs) => {
         for (const log of logs) {

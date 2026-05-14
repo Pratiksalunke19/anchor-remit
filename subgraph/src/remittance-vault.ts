@@ -5,6 +5,7 @@ import {
   CollateralToppedUp,
   CollateralWarning,
   LiquidationGuardTriggered,
+  CollateralUnlocked,
 } from "../generated/RemittanceVault/RemittanceVault";
 import {
   Remittance,
@@ -13,6 +14,7 @@ import {
   LiquidationEvent,
   CollateralTopUp,
   CollateralWarningEvent,
+  CollateralUnlockEvent,
 } from "../generated/schema";
 import { BigInt } from "@graphprotocol/graph-ts";
 import { eventId, getGlobalStats } from "./shared";
@@ -30,6 +32,8 @@ export function handleRemittanceCreated(event: RemittanceCreated): void {
   r.createdAt = event.block.timestamp;
   r.createdAtBlock = event.block.number;
   r.createdTxHash = event.transaction.hash;
+  r.musdRepaid = BigInt.zero();
+  r.btcUnlocked = BigInt.zero();
   r.save();
 
   const g = getGlobalStats(event.block);
@@ -127,6 +131,46 @@ export function handleCollateralWarning(event: CollateralWarning): void {
   ev.timestamp = event.block.timestamp;
   ev.txHash = event.transaction.hash;
   ev.save();
+}
+
+export function handleCollateralUnlocked(event: CollateralUnlocked): void {
+  const id = event.params.orderId.toHex();
+  let r = Remittance.load(id);
+  if (r != null) {
+    r.musdRepaid = r.musdRepaid.plus(event.params.musdRepaid);
+    r.btcUnlocked = r.btcUnlocked.plus(event.params.btcOut);
+    // Once both remaining counters hit zero, the order is fully settled.
+    if (event.params.musdRemaining.equals(BigInt.zero()) && event.params.btcRemaining.equals(BigInt.zero())) {
+      r.status = "SETTLED";
+      r.settledAt = event.block.timestamp;
+      r.settleTxHash = event.transaction.hash;
+    }
+    r.save();
+  }
+
+  const ev = new CollateralUnlockEvent(eventId(event));
+  ev.orderId = event.params.orderId;
+  ev.remittance = id;
+  ev.sender = event.params.sender;
+  ev.musdRepaid = event.params.musdRepaid;
+  ev.btcOut = event.params.btcOut;
+  ev.musdRemaining = event.params.musdRemaining;
+  ev.btcRemaining = event.params.btcRemaining;
+  ev.blockNumber = event.block.number;
+  ev.timestamp = event.block.timestamp;
+  ev.txHash = event.transaction.hash;
+  ev.save();
+
+  const g = getGlobalStats(event.block);
+  g.totalMusdRepaid = g.totalMusdRepaid.plus(event.params.musdRepaid);
+  g.totalCollateralUnlocked = g.totalCollateralUnlocked.plus(event.params.btcOut);
+  if (event.params.musdRemaining.equals(BigInt.zero()) && event.params.btcRemaining.equals(BigInt.zero())) {
+    g.totalSettled = g.totalSettled.plus(BigInt.fromI32(1));
+  }
+  // BTC has physically left the protocol, so the global "collateral locked"
+  // counter decreases by the unlocked amount.
+  g.totalCollateralLocked = g.totalCollateralLocked.minus(event.params.btcOut);
+  g.save();
 }
 
 export function handleLiquidationGuardTriggered(event: LiquidationGuardTriggered): void {

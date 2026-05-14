@@ -193,29 +193,31 @@ export default function Pool() {
   return (
     <div className="space-y-6">
       {/* Hero / Become LP CTA */}
-      <div className="card bg-gradient-to-br from-btc/10 to-white/5 border-btc/30">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-btc text-xs uppercase tracking-wide font-semibold">
-              <ShieldCheck className="w-4 h-4" /> Liquidity Provider Pool
+      <div className="relative overflow-hidden rounded-3xl border border-ivory/10 bg-gradient-to-br from-charcoal-700/80 via-charcoal-800/80 to-charcoal-900/90 p-8 md:p-10 shadow-card-lg">
+        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-amber/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -left-24 w-72 h-72 rounded-full bg-forest/10 blur-3xl pointer-events-none" />
+        <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 eyebrow">
+              <ShieldCheck className="w-3.5 h-3.5" /> Liquidity Provider Pool
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold mt-1">
-              Earn yield by underwriting Bitcoin remittances
+            <h2 className="font-display text-3xl md:text-5xl text-ivory mt-3 leading-[1.05]">
+              Underwrite cross-border BTC remittances.
             </h2>
-            <p className="text-white/70 text-sm mt-2 max-w-xl">
-              Deposit MUSD to backstop under-collateralised orders. Every claim
-              routes a 0.1% fee to the pool — LPs share these fees pro-rata.
+            <p className="text-ivory/65 mt-4 max-w-xl leading-relaxed">
+              Deposit MUSD to backstop under-collateralised orders. Every
+              claim routes a 0.1% fee to the pool — LPs share these fees pro-rata.
             </p>
           </div>
-          <div className="flex flex-col items-end">
-            <div className="text-xs text-white/50 uppercase tracking-wide">Current APY</div>
-            <div className="text-4xl font-bold text-ok">
+          <div className="flex flex-col items-start md:items-end gap-3 md:min-w-[220px]">
+            <span className="stat-label">Current APY</span>
+            <div className="font-display text-5xl text-forest-300 leading-none">
               {metrics?.apyPct != null
                 ? `${metrics.apyPct.toFixed(2)}%`
                 : "—"}
             </div>
             <button
-              className="btn-primary mt-3"
+              className="btn-primary mt-2"
               onClick={scrollToDeposit}
               disabled={!address}
             >
@@ -287,7 +289,7 @@ export default function Pool() {
                 <button
                   key={v}
                   onClick={() => setAmount(v)}
-                  className="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-white/70"
+                  className="text-xs px-2 py-1 rounded bg-ivory/5 hover:bg-ivory/10 text-ivory/70"
                 >
                   {v} MUSD
                 </button>
@@ -312,7 +314,7 @@ export default function Pool() {
             {userSharesNum > 0 && (
               <button
                 onClick={() => setWithdrawShares(shares)}
-                className="text-xs text-white/50 hover:text-white mt-2"
+                className="text-xs text-ivory/50 hover:text-ivory mt-2"
               >
                 Use max ({userSharesNum.toLocaleString()} shares)
               </button>
@@ -336,8 +338,8 @@ export default function Pool() {
         </div>
       </div>
 
-      <details className="card text-sm text-white/70">
-        <summary className="cursor-pointer font-medium text-white">How does the pool work?</summary>
+      <details className="card text-sm text-ivory/70">
+        <summary className="cursor-pointer font-display text-lg text-ivory">How does the pool work?</summary>
         <div className="mt-2 space-y-2">
           <p>
             LPs deposit MUSD to provide a guarantee buffer. Each remittance
@@ -371,13 +373,13 @@ function MetricCard({
   sub?: string;
 }) {
   return (
-    <div className="card">
-      <div className="flex items-center gap-2 text-white/50 text-xs uppercase tracking-wide">
-        {icon}
+    <div className="card hover:border-amber/20 transition">
+      <div className="flex items-center gap-2 stat-label text-ivory/55">
+        <span className="text-amber-300">{icon}</span>
         {label}
       </div>
-      <div className="text-2xl font-bold mt-2">{value}</div>
-      {sub && <div className="text-xs text-white/40 mt-1">{sub}</div>}
+      <div className="font-display text-2xl text-ivory mt-3">{value}</div>
+      {sub && <div className="text-xs text-ivory/45 mt-1">{sub}</div>}
     </div>
   );
 }
@@ -385,8 +387,8 @@ function MetricCard({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs text-white/50 uppercase tracking-wide">{label}</div>
-      <div className="text-xl font-semibold mt-1">{value}</div>
+      <div className="stat-label">{label}</div>
+      <div className="font-display text-xl text-ivory mt-1">{value}</div>
     </div>
   );
 }

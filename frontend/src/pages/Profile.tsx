@@ -63,8 +63,9 @@ export default function Profile() {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Profile</h1>
-        <p className="text-white/60">
+        <span className="eyebrow">Account</span>
+        <h1 className="font-display text-4xl text-ivory mt-2">Profile</h1>
+        <p className="text-ivory/60 mt-2 max-w-xl leading-relaxed">
           Manage your display name and saved recipients. Contacts appear as a
           dropdown when sending a remittance.
         </p>
@@ -83,8 +84,8 @@ export default function Profile() {
         </div>
         <div>
           <label className="label">Wallet</label>
-          <p className="font-mono text-sm text-white/70">
-            {address ?? <span className="text-white/40">Not connected</span>}
+          <p className="font-mono text-sm text-ivory/70">
+            {address ?? <span className="text-ivory/40">Not connected</span>}
           </p>
         </div>
       </motion.div>
@@ -92,7 +93,7 @@ export default function Profile() {
       <motion.div className="card space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Recipients</h2>
-          <span className="text-xs text-white/50">{profile.contacts.length} saved</span>
+          <span className="text-xs text-ivory/50">{profile.contacts.length} saved</span>
         </div>
 
         <div className="grid md:grid-cols-3 gap-3">
@@ -145,14 +146,14 @@ export default function Profile() {
         </div>
 
         {profile.contacts.length === 0 ? (
-          <p className="text-white/50 text-sm">No saved recipients yet.</p>
+          <p className="text-ivory/50 text-sm">No saved recipients yet.</p>
         ) : (
-          <ul className="divide-y divide-white/10">
+          <ul className="divide-y divide-ivory/10">
             {profile.contacts.map((c) => (
               <li key={c.id} className="py-3 flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-medium truncate">{c.name}</div>
-                  <div className="text-xs text-white/60 truncate">
+                  <div className="text-xs text-ivory/60 truncate">
                     {c.address && (
                       <span className="font-mono">
                         {c.address.slice(0, 6)}…{c.address.slice(-4)}

@@ -37,9 +37,22 @@ async function initDb(): Promise<void> {
         status          TEXT DEFAULT 'PENDING',
         created_at      INTEGER,
         sms_sent        INTEGER DEFAULT 0,
-        tx_hash         TEXT
+        tx_hash         TEXT,
+        musd_repaid     TEXT DEFAULT '0',
+        btc_unlocked    TEXT DEFAULT '0'
       );
     `);
+    // Idempotent migration for pre-existing databases.
+    for (const col of [
+      "ALTER TABLE orders ADD COLUMN musd_repaid TEXT DEFAULT '0'",
+      "ALTER TABLE orders ADD COLUMN btc_unlocked TEXT DEFAULT '0'",
+    ]) {
+      try {
+        db.run(col);
+      } catch {
+        // column already exists
+      }
+    }
     db.run(`
       CREATE TABLE IF NOT EXISTS watcher_state (
         key    TEXT PRIMARY KEY,
@@ -75,6 +88,8 @@ export type OrderRow = {
   created_at: number;
   sms_sent: number;
   tx_hash: string | null;
+  musd_repaid: string;
+  btc_unlocked: string;
 };
 
 function rowToOrderRow(row: string[]): OrderRow {
@@ -90,6 +105,8 @@ function rowToOrderRow(row: string[]): OrderRow {
     created_at: Number(row[8]),
     sms_sent: Number(row[9]),
     tx_hash: row[10],
+    musd_repaid: row[11] ?? "0",
+    btc_unlocked: row[12] ?? "0",
   };
 }
 
@@ -97,7 +114,7 @@ export { initDb };
 
 export const orderRepo = {
   upsert(row: Partial<OrderRow> & { order_id: string }) {
-    const d = ensureDb() as { exec: (sql: string, params: unknown[]) => { length: number; values: { length: number }[] }; run: (sql: string, params: unknown[]) => void };
+    const d = ensureDb() as { exec: (sql: string, params: unknown[]) => { values: unknown[][] }[]; run: (sql: string, params: unknown[]) => void };
     const existing = d.exec("SELECT order_id FROM orders WHERE order_id = ?", [row.order_id]);
     if (existing.length > 0 && existing[0].values.length > 0) {
       const fields = Object.keys(row).filter((k) => k !== "order_id");
@@ -107,8 +124,8 @@ export const orderRepo = {
       d.run(`UPDATE orders SET ${set} WHERE order_id = ?`, [...values, row.order_id]);
     } else {
       d.run(
-        `INSERT INTO orders (order_id, sender, recipient, recipient_phone, musd_amount, collateral_btc, expiry_ts, status, created_at, sms_sent, tx_hash)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO orders (order_id, sender, recipient, recipient_phone, musd_amount, collateral_btc, expiry_ts, status, created_at, sms_sent, tx_hash, musd_repaid, btc_unlocked)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           row.order_id,
           row.sender ?? null,
@@ -121,6 +138,8 @@ export const orderRepo = {
           row.created_at ?? Math.floor(Date.now() / 1000),
           row.sms_sent ?? 0,
           row.tx_hash ?? null,
+          row.musd_repaid ?? "0",
+          row.btc_unlocked ?? "0",
         ]
       );
     }

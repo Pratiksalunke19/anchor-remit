@@ -23,18 +23,23 @@ contract RemittanceVault is Ownable, ReentrancyGuard {
         PENDING,
         CLAIMED,
         CANCELLED,
-        LIQUIDATED
+        LIQUIDATED,
+        SETTLED
     }
 
     struct RemittanceOrder {
         address sender;
-        address recipient;       // can be address(0) if phone-based
+        address recipient; // can be address(0) if phone-based
         uint256 musdAmount;
         uint256 collateralBTC;
         uint256 createdAt;
         uint256 expiryTimestamp;
-        bytes32 claimCode;       // keccak256(abi.encodePacked(orderId, pin))
+        bytes32 claimCode; // keccak256(abi.encodePacked(orderId, pin))
         OrderStatus status;
+        // Post-claim settlement tracking. Sender repays MUSD to unlock BTC
+        // proportionally. Both fields are 0 until repayAndUnlock is called.
+        uint256 musdRepaid;
+        uint256 btcUnlocked;
     }
 
     // -------------------- storage --------------------
@@ -67,9 +72,30 @@ contract RemittanceVault is Ownable, ReentrancyGuard {
         uint256 collateralBTC,
         uint256 expiryTimestamp
     );
-    event RemittanceClaimed(bytes32 indexed orderId, address indexed recipient, uint256 amount, uint256 timestamp);
-    event RemittanceCancelled(bytes32 indexed orderId, address indexed sender, uint256 refundBTC);
-    event CollateralToppedUp(bytes32 indexed orderId, uint256 addedBTC, uint256 newRatio);
+    event RemittanceClaimed(
+        bytes32 indexed orderId,
+        address indexed recipient,
+        uint256 amount,
+        uint256 timestamp
+    );
+    event RemittanceCancelled(
+        bytes32 indexed orderId,
+        address indexed sender,
+        uint256 refundBTC
+    );
+    event CollateralUnlocked(
+        bytes32 indexed orderId,
+        address indexed sender,
+        uint256 musdRepaid,
+        uint256 btcOut,
+        uint256 musdRemaining,
+        uint256 btcRemaining
+    );
+    event CollateralToppedUp(
+        bytes32 indexed orderId,
+        uint256 addedBTC,
+        uint256 newRatio
+    );
     event CollateralWarning(bytes32 indexed orderId, uint256 currentRatio);
     event LiquidationGuardTriggered(bytes32 indexed orderId, uint256 covered);
     event FeeUpdated(uint16 newFeeBps);
@@ -105,7 +131,10 @@ contract RemittanceVault is Ownable, ReentrancyGuard {
         emit KeeperUpdated(_keeper);
     }
 
-    function setThresholds(uint256 warningCR, uint256 liquidationCR) external onlyOwner {
+    function setThresholds(
+        uint256 warningCR,
+        uint256 liquidationCR
+    ) external onlyOwner {
         require(liquidationCR < warningCR, "bad thresholds");
         require(liquidationCR >= 1e18, "liq<100%");
         warningThreshold = warningCR;
@@ -132,7 +161,10 @@ contract RemittanceVault is Ownable, ReentrancyGuard {
     ) external nonReentrant returns (bytes32 orderId) {
         require(musdAmount > 0, "amount=0");
         require(collateralBTC > 0, "collat=0");
-        require(expirySeconds >= 1 hours && expirySeconds <= 30 days, "bad expiry");
+        require(
+            expirySeconds >= 1 hours && expirySeconds <= 30 days,
+            "bad expiry"
+        );
         require(claimCodeHash != bytes32(0), "code=0");
 
         // pull BTC collateral and forward to Mezo
@@ -163,7 +195,9 @@ contract RemittanceVault is Ownable, ReentrancyGuard {
             createdAt: block.timestamp,
             expiryTimestamp: block.timestamp + expirySeconds,
             claimCode: keccak256(abi.encodePacked(orderId, claimCodeHash)),
-            status: OrderStatus.PENDING
+            status: OrderStatus.PENDING,
+            musdRepaid: 0,
+            btcUnlocked: 0
         });
 
         emit RemittanceCreated(
@@ -180,7 +214,10 @@ contract RemittanceVault is Ownable, ReentrancyGuard {
     /// @dev The client must compute `claimCodeHash = keccak256(pin)` off-chain
     ///      and here we re-derive `keccak256(orderId || claimCodeHash)` and
     ///      compare with stored `claimCode`.
-    function claimRemittance(bytes32 orderId, bytes32 claimCodeHash) external nonReentrant {
+    function claimRemittance(
+        bytes32 orderId,
+        bytes32 claimCodeHash
+    ) external nonReentrant {
         RemittanceOrder storage o = orders[orderId];
         require(o.status == OrderStatus.PENDING, "not pending");
         require(block.timestamp <= o.expiryTimestamp, "expired");
@@ -218,13 +255,78 @@ contract RemittanceVault is Ownable, ReentrancyGuard {
 
         // repay MUSD debt and withdraw collateral to sender
         musd.forceApprove(address(mezo), o.musdAmount);
-        mezo.repayAndWithdraw(address(this), o.sender, o.musdAmount, o.collateralBTC);
+        mezo.repayAndWithdraw(
+            address(this),
+            o.sender,
+            o.musdAmount,
+            o.collateralBTC
+        );
 
         emit RemittanceCancelled(orderId, o.sender, o.collateralBTC);
     }
 
+    /// @notice Repay MUSD to unlock BTC collateral after a recipient has
+    ///         claimed. Supports partial repayments: each call releases BTC
+    ///         proportional to how much of the *remaining* debt is repaid.
+    /// @dev    The caller must approve this contract to pull `musdRepay` MUSD.
+    /// @param  orderId   The remittance to settle against.
+    /// @param  musdRepay MUSD amount to repay (≤ remaining debt for this order).
+    function repayAndUnlock(
+        bytes32 orderId,
+        uint256 musdRepay
+    ) external nonReentrant {
+        RemittanceOrder storage o = orders[orderId];
+        require(msg.sender == o.sender, "not sender");
+        require(
+            o.status == OrderStatus.CLAIMED || o.status == OrderStatus.SETTLED,
+            "not claimed"
+        );
+        require(musdRepay > 0, "amount=0");
+
+        uint256 musdRemaining = o.musdAmount - o.musdRepaid;
+        uint256 btcRemaining = o.collateralBTC - o.btcUnlocked;
+        require(musdRemaining > 0 && btcRemaining > 0, "already settled");
+        require(musdRepay <= musdRemaining, "exceeds debt");
+
+        // Proportional release; on the final repayment we hand back the exact
+        // remaining BTC so integer-division dust doesn't strand collateral.
+        uint256 btcOut;
+        if (musdRepay == musdRemaining) {
+            btcOut = btcRemaining;
+        } else {
+            btcOut = (btcRemaining * musdRepay) / musdRemaining;
+            require(btcOut > 0, "btc=0");
+        }
+
+        // effects
+        o.musdRepaid += musdRepay;
+        o.btcUnlocked += btcOut;
+        bool fullySettled = o.musdRepaid == o.musdAmount &&
+            o.btcUnlocked == o.collateralBTC;
+        if (fullySettled) {
+            o.status = OrderStatus.SETTLED;
+        }
+
+        // interactions
+        musd.safeTransferFrom(msg.sender, address(this), musdRepay);
+        musd.forceApprove(address(mezo), musdRepay);
+        mezo.repayAndWithdraw(address(this), o.sender, musdRepay, btcOut);
+
+        emit CollateralUnlocked(
+            orderId,
+            o.sender,
+            musdRepay,
+            btcOut,
+            o.musdAmount - o.musdRepaid,
+            o.collateralBTC - o.btcUnlocked
+        );
+    }
+
     /// @notice Top up collateral on an active order (sender only).
-    function topUpCollateral(bytes32 orderId, uint256 extraBTC) external nonReentrant {
+    function topUpCollateral(
+        bytes32 orderId,
+        uint256 extraBTC
+    ) external nonReentrant {
         RemittanceOrder storage o = orders[orderId];
         require(o.status == OrderStatus.PENDING, "not pending");
         require(msg.sender == o.sender, "not sender");
@@ -247,7 +349,9 @@ contract RemittanceVault is Ownable, ReentrancyGuard {
     /// @notice Triggered by a keeper when vault CR < liquidationThreshold.
     ///         Pulls MUSD from the InsurancePool to cover the order so the
     ///         recipient can still claim.
-    function liquidationGuard(bytes32 orderId) external onlyKeeper nonReentrant {
+    function liquidationGuard(
+        bytes32 orderId
+    ) external onlyKeeper nonReentrant {
         RemittanceOrder storage o = orders[orderId];
         require(o.status == OrderStatus.PENDING, "not pending");
 
@@ -285,7 +389,9 @@ contract RemittanceVault is Ownable, ReentrancyGuard {
 
     // -------------------- views --------------------
 
-    function getOrder(bytes32 orderId) external view returns (RemittanceOrder memory) {
+    function getOrder(
+        bytes32 orderId
+    ) external view returns (RemittanceOrder memory) {
         return orders[orderId];
     }
 }

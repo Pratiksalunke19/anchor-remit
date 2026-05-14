@@ -7,9 +7,9 @@ dataSources:
     name: RemittanceVault
     network: mezo-testnet
     source:
-      address: "0x518286f49FcC5a912DdAb30c0d2BA6aA4cC62490"
+      address: "0xF58A485b6Ea6358A6bd2Eb21FFfc3c077fd0193D"
       abi: RemittanceVault
-      startBlock: 0
+      startBlock: 13042621
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -23,6 +23,7 @@ dataSources:
         - LiquidationEvent
         - CollateralTopUp
         - CollateralWarningEvent
+        - CollateralUnlockEvent
       abis:
         - name: RemittanceVault
           file: ./abis/RemittanceVault.json
@@ -39,13 +40,15 @@ dataSources:
           handler: handleCollateralWarning
         - event: LiquidationGuardTriggered(indexed bytes32,uint256)
           handler: handleLiquidationGuardTriggered
+        - event: CollateralUnlocked(indexed bytes32,indexed address,uint256,uint256,uint256,uint256)
+          handler: handleCollateralUnlocked
   - kind: ethereum
     name: InsurancePool
     network: mezo-testnet
     source:
-      address: "0xBe1Be331Da23Ad394fA6Bb4dD84d24Aec5F26224"
+      address: "0xe1fEc0224cc747d01CBBA9d7D60D87b693C6A39e"
       abi: InsurancePool
-      startBlock: 0
+      startBlock: 13042621
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

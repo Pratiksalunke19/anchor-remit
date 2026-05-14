@@ -11,7 +11,7 @@ export default function CollateralMeter({ ratio }: Props) {
   const angle = -90 + pct * 180;
 
   const color =
-    ratio >= 150 ? "#2ED573" : ratio >= 120 ? "#FFA502" : "#FF4757";
+    ratio >= 150 ? "#6B8475" : ratio >= 120 ? "#D9A24E" : "#B85C3E";
 
   const status =
     ratio >= 150 ? "Safe" : ratio >= 120 ? "Warning" : "Danger";
@@ -21,14 +21,14 @@ export default function CollateralMeter({ ratio }: Props) {
       <svg viewBox="0 0 200 120" className="w-full">
         <defs>
           <linearGradient id="gauge" x1="0" x2="1">
-            <stop offset="0" stopColor="#FF4757" />
-            <stop offset="0.4" stopColor="#FFA502" />
-            <stop offset="0.7" stopColor="#2ED573" />
+            <stop offset="0" stopColor="#B85C3E" />
+            <stop offset="0.4" stopColor="#D9A24E" />
+            <stop offset="0.7" stopColor="#6B8475" />
           </linearGradient>
         </defs>
         <path
           d="M 20 100 A 80 80 0 0 1 180 100"
-          stroke="rgba(255,255,255,0.1)"
+          stroke="rgba(244,236,221,0.10)"
           strokeWidth="14"
           fill="none"
           strokeLinecap="round"
@@ -60,7 +60,7 @@ export default function CollateralMeter({ ratio }: Props) {
         <div className="text-3xl font-bold" style={{ color }}>
           {ratio.toFixed(1)}%
         </div>
-        <div className="text-sm text-white/60">Collateral · {status}</div>
+        <div className="text-sm text-ivory/55">Collateral · {status}</div>
       </div>
     </div>
   );
@@ -73,13 +73,13 @@ function Marker({ angle, label }: { angle: number; label: string }) {
   const y = 100 + Math.sin(rad) * r;
   return (
     <g>
-      <circle cx={x} cy={y} r="3" fill="rgba(255,255,255,0.35)" />
+      <circle cx={x} cy={y} r="3" fill="rgba(244,236,221,0.40)" />
       <text
         x={x}
         y={y - 6}
         textAnchor="middle"
         fontSize="8"
-        fill="rgba(255,255,255,0.5)"
+        fill="rgba(244,236,221,0.55)"
       >
         {label}
       </text>

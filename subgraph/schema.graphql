@@ -9,11 +9,14 @@ type GlobalStats @entity {
   totalClaimed: BigInt!
   totalCancelled: BigInt!
   totalLiquidated: BigInt!
+  totalSettled: BigInt!
 
   # value flowing through the vault (cumulative)
   totalMusdLocked: BigInt!
   totalMusdSettled: BigInt!
   totalCollateralLocked: BigInt!
+  totalMusdRepaid: BigInt!
+  totalCollateralUnlocked: BigInt!
 
   # insurance pool
   totalLpDeposited: BigInt!
@@ -32,6 +35,7 @@ enum RemittanceStatus {
   CLAIMED
   CANCELLED
   LIQUIDATED
+  SETTLED
 }
 
 """
@@ -64,8 +68,29 @@ type Remittance @entity {
   liquidationCovered: BigInt
   liquidationTxHash: Bytes
 
+  # post-claim settlement (cumulative across partial unlocks)
+  musdRepaid: BigInt!
+  btcUnlocked: BigInt!
+  settledAt: BigInt
+  settleTxHash: Bytes
+
   topUps: [CollateralTopUp!]! @derivedFrom(field: "remittance")
   warnings: [CollateralWarningEvent!]! @derivedFrom(field: "remittance")
+  unlocks: [CollateralUnlockEvent!]! @derivedFrom(field: "remittance")
+}
+
+type CollateralUnlockEvent @entity(immutable: true) {
+  id: ID!
+  orderId: Bytes!
+  remittance: Remittance!
+  sender: Bytes!
+  musdRepaid: BigInt!
+  btcOut: BigInt!
+  musdRemaining: BigInt!
+  btcRemaining: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
 }
 
 """

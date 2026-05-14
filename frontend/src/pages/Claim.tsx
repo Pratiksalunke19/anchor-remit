@@ -130,13 +130,16 @@ export default function Claim() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">Claim MUSD</h1>
-      <p className="text-white/60 mb-8">Enter the 6-digit PIN shared by the sender.</p>
+      <div className="mb-8">
+        <span className="eyebrow">Incoming transfer</span>
+        <h1 className="font-display text-4xl text-ivory mt-2">Claim MUSD</h1>
+        <p className="text-ivory/60 mt-2">Enter the 6-digit PIN shared by the sender.</p>
+      </div>
       <StepIndicator steps={STEPS} current={step} />
 
       {error && (
-        <div className="card bg-danger/10 border-danger/40 mb-4">
-          <p className="text-danger text-sm">{error}</p>
+        <div className="rounded-2xl bg-clay/10 border border-clay/30 px-5 py-4 mb-4">
+          <p className="text-clay-400 text-sm">{error}</p>
         </div>
       )}
 
@@ -144,7 +147,7 @@ export default function Claim() {
 
       {order && step === 0 && (
         <motion.div className="card space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <dl className="text-sm divide-y divide-white/10">
+          <dl className="text-sm divide-y divide-ivory/10">
             <Row k="Order" v={`${orderId?.slice(0, 12)}…${orderId?.slice(-6)}`} />
             <Row k="From" v={`${order.sender.slice(0, 6)}…${order.sender.slice(-4)}`} />
             <Row k="Amount" v={`${formatEther(BigInt(order.musdAmount))} MUSD`} />
@@ -186,7 +189,7 @@ export default function Claim() {
       {step === 2 && (
         <motion.div className="card space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <h3 className="font-semibold">Connect wallet & claim</h3>
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ivory/60">
             The claimed MUSD will be sent to the wallet you connect here.
           </p>
           <ConnectButton showBalance={false} />
@@ -202,9 +205,18 @@ export default function Claim() {
 
       {step === 3 && order && (
         <motion.div className="card space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <h3 className="font-semibold text-lg text-ok">Claimed ✓</h3>
-          <p className="text-white/70">
-            {formatEther(BigInt(order.musdAmount))} MUSD has been sent to your wallet.
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-forest/15 border border-forest/30 text-forest-300 flex items-center justify-center text-lg">
+              ✓
+            </div>
+            <div>
+              <span className="eyebrow">Settled on Mezo</span>
+              <h3 className="font-display text-2xl text-ivory mt-1">Claim received</h3>
+            </div>
+          </div>
+          <p className="text-ivory/70">
+            <span className="font-display text-2xl text-amber-300">{formatEther(BigInt(order.musdAmount))}</span>{" "}
+            MUSD has been sent to your wallet.
           </p>
           <div className="grid md:grid-cols-2 gap-2">
             <button className="btn-primary" onClick={openOfframp}>
@@ -220,7 +232,7 @@ export default function Claim() {
             </button>
           </div>
           {offramp && (
-            <p className="text-xs text-white/40">
+            <p className="text-xs text-ivory/40">
               Off-ramp session opened in a new tab.
             </p>
           )}
@@ -233,7 +245,7 @@ export default function Claim() {
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between py-2">
-      <dt className="text-white/60">{k}</dt>
+      <dt className="text-ivory/60">{k}</dt>
       <dd className="font-medium">{v}</dd>
     </div>
   );

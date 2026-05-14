@@ -29,7 +29,7 @@ export default function Dashboard() {
     role: "sender" | "recipient",
   ): Promise<OrderRow[]> {
     if (!publicClient) return [];
-    const statusMap = ["PENDING", "CLAIMED", "CANCELLED", "LIQUIDATED"];
+    const statusMap = ["PENDING", "CLAIMED", "CANCELLED", "LIQUIDATED", "SETTLED"];
     const logs = await publicClient.getContractEvents({
       address: contractAddresses.remittanceVault,
       abi: remittanceVaultAbi,
@@ -53,6 +53,8 @@ export default function Dashboard() {
           recipient_phone: null,
           musd_amount: o.musdAmount.toString(),
           collateral_btc: o.collateralBTC.toString(),
+          musd_repaid: (o.musdRepaid ?? 0n).toString(),
+          btc_unlocked: (o.btcUnlocked ?? 0n).toString(),
           expiry_ts: Number(o.expiryTimestamp),
           status: statusMap[Number(o.status)] || "PENDING",
         });
@@ -96,7 +98,7 @@ export default function Dashboard() {
       <div className="space-y-8">
         <LiveFeed />
         <div className="card max-w-xl mx-auto text-center">
-          <p className="text-white/70">
+          <p className="text-ivory/70">
             Connect a wallet to view your personal dashboard.
           </p>
         </div>
@@ -105,17 +107,28 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+        <div>
+          <span className="eyebrow">Account overview</span>
+          <h1 className="font-display text-4xl text-ivory mt-2">Dashboard</h1>
+          <p className="text-ivory/60 mt-1">Track your transfers, vault health, and global activity.</p>
+        </div>
+        <span className="pill-muted self-start md:self-auto">{address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Not connected"}</span>
+      </div>
+
       <LiveFeed />
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="card md:col-span-1">
-          <h2 className="font-semibold mb-4">Vault collateral</h2>
+          <span className="eyebrow">Vault collateral</span>
+          <h2 className="font-display text-xl text-ivory mt-2 mb-4">Health gauge</h2>
           <CollateralMeter ratio={ratioPct} />
         </div>
         <div className="card md:col-span-2">
-          <h2 className="font-semibold mb-4">Summary</h2>
-          <div className="grid grid-cols-4 gap-4">
+          <span className="eyebrow">Summary</span>
+          <h2 className="font-display text-xl text-ivory mt-2 mb-6">Your activity</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <Stat label="Sent" value={orders.length.toString()} />
             <Stat label="Received" value={received.length.toString()} />
             <Stat
@@ -123,11 +136,20 @@ export default function Dashboard() {
               value={orders.filter((o) => o.status === "PENDING").length.toString()}
             />
             <Stat
-              label="Claimable"
-              value={received.filter((o) => o.status === "PENDING").length.toString()}
+              label="BTC locked"
+              value={(() => {
+                const total = orders
+                  .filter((o) => o.status === "CLAIMED")
+                  .reduce((acc, o) => {
+                    const total = BigInt(o.collateral_btc || "0");
+                    const unlocked = BigInt(o.btc_unlocked || "0");
+                    return acc + (total > unlocked ? total - unlocked : 0n);
+                  }, 0n);
+                return Number(formatEther(total)).toFixed(5);
+              })()}
             />
           </div>
-          <p className="text-xs text-white/40 mt-6">
+          <p className="text-xs text-ivory/45 mt-6 leading-relaxed border-t border-ivory/10 pt-4">
             Collateral ratio is pooled across all active orders in the vault.
             Keep it above 150% to stay safe.
           </p>
@@ -135,9 +157,10 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xl font-semibold">Your remittances</h2>
-          <div className="ml-auto flex gap-1 bg-white/5 rounded-lg p-1">
+        <div className="flex items-center gap-2 mb-5">
+          <span className="eyebrow">Transfers</span>
+          <h2 className="font-display text-2xl text-ivory ml-3">Your remittances</h2>
+          <div className="ml-auto flex gap-1 bg-charcoal-700/70 border border-ivory/10 rounded-full p-1">
             <TabBtn active={tab === "sent"} onClick={() => setTab("sent")}>
               Sent ({orders.length})
             </TabBtn>
@@ -148,7 +171,7 @@ export default function Dashboard() {
         </div>
         {tab === "sent" ? (
           orders.length === 0 ? (
-            <div className="card text-white/60">No remittances sent yet.</div>
+            <div className="card text-ivory/60">No remittances sent yet.</div>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
               {orders.map((o) => (
@@ -161,7 +184,7 @@ export default function Dashboard() {
             </div>
           )
         ) : received.length === 0 ? (
-          <div className="card text-white/60">
+          <div className="card text-ivory/60">
             No incoming remittances yet. Once someone sends to your wallet, it
             will appear here.
           </div>
@@ -193,8 +216,10 @@ function TabBtn({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-md text-sm transition ${
-        active ? "bg-white/10 text-white" : "text-white/60 hover:text-white"
+      className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+        active
+          ? "bg-amber-sheen text-charcoal-900 shadow-glow"
+          : "text-ivory/65 hover:text-ivory"
       }`}
     >
       {children}
@@ -205,8 +230,8 @@ function TabBtn({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-3xl font-bold">{value}</div>
-      <div className="text-xs text-white/50 uppercase tracking-wide">{label}</div>
+      <div className="stat-value">{value}</div>
+      <div className="stat-label mt-1">{label}</div>
     </div>
   );
 }

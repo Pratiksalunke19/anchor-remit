@@ -34,7 +34,7 @@ export default function PinInput({ value, onChange, length = 6, autoFocus }: Pro
               refs.current[i - 1]?.focus();
             }
           }}
-          className="w-12 h-14 text-center text-2xl font-semibold rounded-lg bg-black/40 border border-white/10 focus:border-btc focus:outline-none"
+          className="w-12 h-14 text-center text-2xl font-display rounded-xl bg-charcoal-900/60 border border-ivory/10 text-ivory caret-amber-300 focus:border-amber focus:ring-2 focus:ring-amber/20 focus:outline-none transition"
         />
       ))}
     </div>

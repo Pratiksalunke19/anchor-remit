@@ -70,7 +70,7 @@ remittanceRouter.get("/:orderId", async (req, res) => {
       args: [orderId],
     })) as any;
 
-    const statusMap = ["PENDING", "CLAIMED", "CANCELLED", "LIQUIDATED"];
+    const statusMap = ["PENDING", "CLAIMED", "CANCELLED", "LIQUIDATED", "SETTLED"];
     const local = orderRepo.get(orderId);
 
     res.json({
@@ -79,6 +79,8 @@ remittanceRouter.get("/:orderId", async (req, res) => {
       recipient: onchain.recipient,
       musdAmount: onchain.musdAmount.toString(),
       collateralBTC: onchain.collateralBTC.toString(),
+      musdRepaid: (onchain.musdRepaid ?? 0n).toString(),
+      btcUnlocked: (onchain.btcUnlocked ?? 0n).toString(),
       createdAt: Number(onchain.createdAt),
       expiryTimestamp: Number(onchain.expiryTimestamp),
       status: statusMap[Number(onchain.status)],

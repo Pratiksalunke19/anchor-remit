@@ -1,6 +1,7 @@
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck } from "lucide-react";
 import Home from "./pages/Home";
 import Send from "./pages/Send";
 import Claim from "./pages/Claim";
@@ -9,7 +10,7 @@ import Pool from "./pages/Pool";
 import Profile from "./pages/Profile";
 
 const nav = [
-  { to: "/", label: "Home" },
+  { to: "/", label: "Overview" },
   { to: "/send", label: "Send" },
   { to: "/dashboard", label: "Dashboard" },
   { to: "/pool", label: "Pool" },
@@ -20,32 +21,60 @@ export default function App() {
   const location = useLocation();
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-30 backdrop-blur-lg bg-ink/70 border-b border-white/10">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-            <img
-              src="/anchor-remittance-logo.png"
-              alt="Anchor Remit"
-              className="w-8 h-8 rounded-md object-contain"
-            />
-            Anchor Remit
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-charcoal-900/75 border-b border-ivory/10">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-3 group">
+            <span className="relative inline-flex w-9 h-9 rounded-xl bg-gradient-to-br from-amber-300 to-copper p-[1px] shadow-glow">
+              <span className="flex w-full h-full rounded-[10px] bg-charcoal-900 items-center justify-center">
+                <img
+                  src="/anchor-remittance-logo.png"
+                  alt=""
+                  className="w-6 h-6 object-contain"
+                />
+              </span>
+            </span>
+            <span className="flex flex-col leading-tight">
+              <span className="font-display text-base text-ivory tracking-tight">
+                Anchor Remit
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.22em] text-ivory/45">
+                Global · Bitcoin-backed
+              </span>
+            </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
-            {nav.map((n) => (
-              <Link
-                key={n.to}
-                to={n.to}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                  location.pathname === n.to
-                    ? "bg-white/10 text-white"
-                    : "text-white/60 hover:text-white"
-                }`}
-              >
-                {n.label}
-              </Link>
-            ))}
+
+          <nav className="hidden md:flex items-center gap-0.5 bg-charcoal-800/70 border border-ivory/10 rounded-full p-1">
+            {nav.map((n) => {
+              const active = location.pathname === n.to;
+              return (
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  className={`relative px-4 py-1.5 rounded-full text-sm font-medium transition ${
+                    active
+                      ? "text-charcoal-900"
+                      : "text-ivory/65 hover:text-ivory"
+                  }`}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="nav-pill"
+                      className="absolute inset-0 rounded-full bg-amber-sheen shadow-glow"
+                      transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                    />
+                  )}
+                  <span className="relative">{n.label}</span>
+                </Link>
+              );
+            })}
           </nav>
-          <ConnectButton chainStatus="icon" accountStatus="avatar" showBalance={false} />
+
+          <div className="flex items-center gap-3">
+            <span className="hidden lg:inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-forest-300">
+              <ShieldCheck className="w-3.5 h-3.5" /> Mezo Matsnet
+            </span>
+            <ConnectButton chainStatus="icon" accountStatus="avatar" showBalance={false} />
+          </div>
         </div>
       </header>
 
@@ -53,11 +82,11 @@ export default function App() {
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="max-w-6xl mx-auto px-6 py-8"
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="max-w-6xl mx-auto px-6 py-10"
           >
             <Routes location={location}>
               <Route path="/" element={<Home />} />
@@ -71,8 +100,20 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <footer className="border-t border-white/10 py-6 text-center text-white/40 text-sm">
-        Built on Mezo Matsnet · Bitcoin-backed remittances
+      <footer className="border-t border-ivory/10 py-8 mt-8">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3 text-ivory/50">
+            <span className="w-1.5 h-1.5 rounded-full bg-forest animate-pulse" />
+            Built on Mezo Matsnet · Bitcoin-backed remittances
+          </div>
+          <div className="flex items-center gap-4 text-ivory/40 uppercase tracking-[0.2em]">
+            <span>Secure transfer</span>
+            <span className="w-px h-3 bg-ivory/15" />
+            <span>Cross-border</span>
+            <span className="w-px h-3 bg-ivory/15" />
+            <span>Self-custodial</span>
+          </div>
+        </div>
       </footer>
     </div>
   );

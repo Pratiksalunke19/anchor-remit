@@ -4,6 +4,7 @@
 
 :root {
   color-scheme: dark;
+  --map-stroke: rgba(244, 236, 221, 0.05);
 }
 
 html,
@@ -14,31 +15,112 @@ body,
 
 body {
   font-family: "Inter", system-ui, sans-serif;
-  background: radial-gradient(at 15% 15%, rgba(247, 147, 26, 0.08), transparent 45%),
-    radial-gradient(at 85% 80%, rgba(0, 212, 170, 0.08), transparent 45%), #0f0f1a;
+  color: #F4ECDD;
+  background-color: #14110F;
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(217, 162, 78, 0.10), transparent 42%),
+    radial-gradient(circle at 82% 88%, rgba(107, 132, 117, 0.09), transparent 48%),
+    radial-gradient(circle at 50% 50%, rgba(166, 113, 46, 0.04), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Faint cartographic dot grid behind the entire app — evokes a globe lattice */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.55;
+  background-image: radial-gradient(
+    rgba(244, 236, 221, 0.05) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  mask-image: radial-gradient(circle at 50% 35%, black 0%, transparent 75%);
+  -webkit-mask-image: radial-gradient(circle at 50% 35%, black 0%, transparent 75%);
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+::selection {
+  background: rgba(217, 162, 78, 0.35);
+  color: #F4ECDD;
+}
+
+h1, h2, h3, .font-display {
+  font-family: "Fraunces", "Georgia", serif;
+  letter-spacing: -0.01em;
 }
 
 @layer components {
+  .surface {
+    @apply rounded-2xl bg-charcoal-800/80 border border-ivory/10 backdrop-blur-md;
+  }
   .card {
-    @apply rounded-xl bg-white/5 border border-white/10 backdrop-blur-md p-6 shadow-xl;
+    @apply rounded-2xl bg-charcoal-800/80 border border-ivory/10 backdrop-blur-md
+           p-6 shadow-card-lg;
+  }
+  .card-elevated {
+    @apply rounded-2xl bg-gradient-to-b from-charcoal-700/80 to-charcoal-800/80
+           border border-ivory/10 backdrop-blur-md p-6 shadow-card-lg;
+  }
+  .hairline {
+    @apply border-ivory/10;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold
-           bg-btc text-ink hover:brightness-110 active:brightness-95 transition
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-medium
+           bg-amber-sheen text-charcoal-900 shadow-glow
+           hover:brightness-105 active:brightness-95 transition
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-medium
-           border border-white/20 text-white/90 hover:bg-white/10 transition;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-medium
+           border border-ivory/15 text-ivory/90 bg-ivory/0
+           hover:bg-ivory/5 hover:border-ivory/25 transition;
+  }
+  .btn-soft {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-medium
+           bg-amber/10 text-amber-300 border border-amber/30
+           hover:bg-amber/15 transition;
   }
   .input {
-    @apply w-full rounded-lg bg-black/30 border border-white/10 px-4 py-3
-           text-white placeholder-white/40 focus:outline-none focus:border-btc/60;
+    @apply w-full rounded-xl bg-charcoal-900/60 border border-ivory/10 px-4 py-3
+           text-ivory placeholder-ivory/35 focus:outline-none
+           focus:border-amber/60 focus:ring-2 focus:ring-amber/20 transition;
   }
   .label {
-    @apply text-sm font-medium text-white/70 mb-1 block;
+    @apply text-xs font-medium uppercase tracking-[0.14em] text-ivory/55 mb-1.5 block;
   }
   .pill {
-    @apply inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full;
+    @apply inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1
+           rounded-full uppercase tracking-wider;
+  }
+  .pill-amber {
+    @apply pill bg-amber/10 text-amber-300 border border-amber/25;
+  }
+  .pill-forest {
+    @apply pill bg-forest/15 text-forest-300 border border-forest/30;
+  }
+  .pill-clay {
+    @apply pill bg-clay/15 text-clay-400 border border-clay/30;
+  }
+  .pill-muted {
+    @apply pill bg-ivory/5 text-ivory/55 border border-ivory/10;
+  }
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-300;
+  }
+  .stat-value {
+    @apply font-display text-3xl text-ivory tracking-tight;
+  }
+  .stat-label {
+    @apply text-[11px] uppercase tracking-[0.18em] text-ivory/50;
+  }
+  .divide-hairline > * + * {
+    @apply border-t border-ivory/10;
   }
 }

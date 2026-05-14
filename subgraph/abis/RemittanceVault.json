@@ -166,6 +166,16 @@
             "name": "status",
             "type": "uint8",
             "internalType": "enum RemittanceVault.OrderStatus"
+          },
+          {
+            "name": "musdRepaid",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "btcUnlocked",
+            "type": "uint256",
+            "internalType": "uint256"
           }
         ]
       }
@@ -300,6 +310,16 @@
         "name": "status",
         "type": "uint8",
         "internalType": "enum RemittanceVault.OrderStatus"
+      },
+      {
+        "name": "musdRepaid",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "btcUnlocked",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -347,6 +367,24 @@
     "type": "function",
     "name": "renounceOwnership",
     "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "repayAndUnlock",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "musdRepay",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -469,6 +507,49 @@
       },
       {
         "name": "newRatio",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CollateralUnlocked",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "musdRepaid",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "btcOut",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "musdRemaining",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "btcRemaining",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"

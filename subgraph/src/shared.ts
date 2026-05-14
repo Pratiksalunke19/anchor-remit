@@ -11,9 +11,12 @@ export function getGlobalStats(block: ethereum.Block): GlobalStats {
     g.totalClaimed = BigInt.zero();
     g.totalCancelled = BigInt.zero();
     g.totalLiquidated = BigInt.zero();
+    g.totalSettled = BigInt.zero();
     g.totalMusdLocked = BigInt.zero();
     g.totalMusdSettled = BigInt.zero();
     g.totalCollateralLocked = BigInt.zero();
+    g.totalMusdRepaid = BigInt.zero();
+    g.totalCollateralUnlocked = BigInt.zero();
     g.totalLpDeposited = BigInt.zero();
     g.totalLpWithdrawn = BigInt.zero();
     g.totalShortfallCovered = BigInt.zero();
