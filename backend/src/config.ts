@@ -43,7 +43,7 @@ export const addresses = {
 export const serverConfig = {
   port: Number(process.env.PORT || 3001),
   corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173",
-  sqlitePath: process.env.SQLITE_PATH || "./data/anchor-remit.db",
+  sqlitePath: process.env.SQLITE_PATH || "/tmp/anchor-remit.db",
 };
 
 export const twilioConfig = {
