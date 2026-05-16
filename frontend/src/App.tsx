@@ -8,12 +8,15 @@ import Claim from "./pages/Claim";
 import Dashboard from "./pages/Dashboard";
 import Pool from "./pages/Pool";
 import Profile from "./pages/Profile";
+import CashOut from "./pages/CashOut";
+import History from "./pages/History";
 
 const nav = [
   { to: "/", label: "Overview" },
   { to: "/send", label: "Send" },
   { to: "/dashboard", label: "Dashboard" },
   { to: "/pool", label: "Pool" },
+  { to: "/history", label: "History" },
   { to: "/profile", label: "Profile" },
 ];
 
@@ -94,6 +97,8 @@ export default function App() {
               <Route path="/claim/:orderId" element={<Claim />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pool" element={<Pool />} />
+              <Route path="/cashout/:orderId" element={<CashOut />} />
+              <Route path="/history" element={<History />} />
               <Route path="/profile" element={<Profile />} />
             </Routes>
           </motion.div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import { formatEther, keccak256, toBytes } from "viem";
@@ -14,6 +14,7 @@ const STEPS = ["Preview", "PIN", "Claim", "Done"];
 
 export default function Claim() {
   const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
@@ -219,11 +220,17 @@ export default function Claim() {
             MUSD has been sent to your wallet.
           </p>
           <div className="grid md:grid-cols-2 gap-2">
-            <button className="btn-primary" onClick={openOfframp}>
+            <button
+              className="btn-primary"
+              onClick={() => navigate(`/cashout/${orderId}`)}
+            >
+              Cash out to bank / UPI →
+            </button>
+            <button className="btn-ghost" onClick={openOfframp}>
               Spend via off-ramp
             </button>
             <button
-              className="btn-ghost"
+              className="btn-ghost md:col-span-2"
               onClick={() =>
                 address && navigator.clipboard.writeText(address)
               }
@@ -231,6 +238,10 @@ export default function Claim() {
               Copy wallet address
             </button>
           </div>
+          <p className="text-[11px] text-ivory/45">
+            Cash-out routes MUSD through the partner payout network
+            (UPI / bank / GCash). Simulated for this demo.
+          </p>
           {offramp && (
             <p className="text-xs text-ivory/40">
               Off-ramp session opened in a new tab.
