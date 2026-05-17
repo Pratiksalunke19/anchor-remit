@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useAccount } from "wagmi";
 import { usePersistedState } from "./usePersistedState";
 
 export type Contact = {
@@ -13,11 +14,20 @@ export type Profile = {
   contacts: Contact[];
 };
 
-const PROFILE_KEY = "anchor-remit:profile/v1";
+const PROFILE_KEY_BASE = "anchor-remit:profile/v1";
+const GUEST_KEY = `${PROFILE_KEY_BASE}:guest`;
 const INITIAL: Profile = { displayName: "", contacts: [] };
 
+function profileKey(address?: string) {
+  return address ? `${PROFILE_KEY_BASE}:${address.toLowerCase()}` : GUEST_KEY;
+}
+
 export function useProfile() {
-  const [profile, setProfile] = usePersistedState<Profile>(PROFILE_KEY, INITIAL);
+  const { address } = useAccount();
+  const [profile, setProfile] = usePersistedState<Profile>(
+    profileKey(address),
+    INITIAL,
+  );
 
   const setDisplayName = useCallback(
     (name: string) => setProfile((p) => ({ ...p, displayName: name })),

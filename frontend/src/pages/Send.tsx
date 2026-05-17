@@ -8,7 +8,7 @@ import { remittanceVaultAbi, erc20Abi, mezoVaultAbi } from "../abi";
 import { contractAddresses } from "../wagmi.config";
 import { api } from "../api";
 import { motion } from "framer-motion";
-import { Copy, ExternalLink, MessageCircle, Users } from "lucide-react";
+import { Copy, ExternalLink, MessageCircle, Users, Droplets } from "lucide-react";
 import { usePersistedState } from "../hooks/usePersistedState";
 import { useProfile } from "../hooks/useContacts";
 
@@ -331,6 +331,33 @@ export default function Send() {
       </div>
 
       <StepIndicator steps={STEPS} current={step} />
+
+      {step === 0 && address && tbtcBalance !== null && tbtcBalance === 0n && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card border-btc/30 bg-btc/5 mb-4 flex items-start gap-3"
+        >
+          <span className="w-10 h-10 shrink-0 rounded-xl bg-btc/15 border border-btc/30 text-btc flex items-center justify-center">
+            <Droplets className="w-5 h-5" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-ivory">No tBTC in your wallet</h3>
+            <p className="text-sm text-ivory/65 mt-0.5">
+              You need testnet tBTC as collateral before you can send MUSD. Mint
+              some from the faucet — it's free on Mezo Matsnet.
+            </p>
+            <button
+              className="btn-primary mt-3"
+              onClick={mintTestBtc}
+              disabled={minting}
+            >
+              {minting ? "Minting…" : "Mint 1 tBTC from faucet"}
+            </button>
+            {error && <p className="text-danger text-xs mt-2">{error}</p>}
+          </div>
+        </motion.div>
+      )}
 
       {step === 0 && (
         <motion.div className="card space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>

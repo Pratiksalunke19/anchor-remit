@@ -1,6 +1,6 @@
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ShieldCheck } from "lucide-react";
 import Home from "./pages/Home";
 import Send from "./pages/Send";
@@ -29,15 +29,11 @@ export default function App() {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-charcoal-900/75 border-b border-ivory/10">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3 group">
-            <span className="relative inline-flex w-9 h-9 rounded-xl bg-gradient-to-br from-amber-300 to-copper p-[1px] shadow-glow">
-              <span className="flex w-full h-full rounded-[10px] bg-charcoal-900 items-center justify-center">
-                <img
-                  src="/anchor-remittance-logo.png"
-                  alt=""
-                  className="w-6 h-6 object-contain"
-                />
-              </span>
-            </span>
+            <img
+              src="/anchor-remittance-logo.png"
+              alt=""
+              className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(245,158,11,0.35)]"
+            />
             <span className="flex flex-col leading-tight">
               <span className="font-display text-base text-ivory tracking-tight">
                 Anchor Remit
@@ -84,29 +80,26 @@ export default function App() {
       </header>
 
       <main className="flex-1">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-6xl mx-auto px-6 py-10"
-          >
-            <Routes location={location}>
-              <Route path="/" element={<Home />} />
-              <Route path="/send" element={<Send />} />
-              <Route path="/claim/:orderId" element={<Claim />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/pool" element={<Pool />} />
-              <Route path="/cashout/:orderId" element={<CashOut />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/wallet" element={<Wallet />} />
-              <Route path="/login" element={<Login />} />
-            </Routes>
-          </motion.div>
-        </AnimatePresence>
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-6xl mx-auto px-6 py-10"
+        >
+          <Routes location={location}>
+            <Route path="/" element={<Home />} />
+            <Route path="/send" element={<Send />} />
+            <Route path="/claim/:orderId" element={<Claim />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/pool" element={<Pool />} />
+            <Route path="/cashout/:orderId" element={<CashOut />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/login" element={<Login />} />
+          </Routes>
+        </motion.div>
       </main>
 
       <footer className="border-t border-ivory/10 py-8 mt-8">

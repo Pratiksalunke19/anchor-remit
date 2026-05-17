@@ -121,6 +121,12 @@ export default function Profile() {
           <h2 className="font-semibold">Recipients</h2>
           <span className="text-xs text-ivory/50">{profile.contacts.length} saved</span>
         </div>
+        {!address && (
+          <p className="text-xs text-amber-300/90 bg-amber/5 border border-amber/20 rounded-lg p-2">
+            You're browsing as a guest — contacts you save now won't follow your wallet.
+            Connect a wallet to keep recipients tied to your address.
+          </p>
+        )}
 
         <div className="grid md:grid-cols-3 gap-3">
           <div>
