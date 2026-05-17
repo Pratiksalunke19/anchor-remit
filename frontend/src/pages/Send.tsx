@@ -170,7 +170,6 @@ export default function Send() {
   const canNext0 =
     Number(musdAmount) > 0 &&
     Number(collateralBtc) > 0 &&
-    (recipientPhone || recipientAddress) &&
     collateralOk;
 
   const canNext1 = /^\d{6}$/.test(pin);

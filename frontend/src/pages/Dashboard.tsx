@@ -65,21 +65,40 @@ export default function Dashboard() {
     return rows;
   }
 
+  function mergeOrders(a: OrderRow[], b: OrderRow[]): OrderRow[] {
+    const map = new Map<string, OrderRow>();
+    // Later entries win, so put on-chain (authoritative) last to override
+    // stale backend status fields.
+    for (const o of a) map.set(o.order_id.toLowerCase(), o);
+    for (const o of b) map.set(o.order_id.toLowerCase(), { ...map.get(o.order_id.toLowerCase()), ...o });
+    return Array.from(map.values()).sort((x, y) => (y.expiry_ts || 0) - (x.expiry_ts || 0));
+  }
+
   async function fetchOrders(addr: `0x${string}`) {
+    // Always pull on-chain events so orders show up even when the backend
+    // missed `registerOrder` (e.g. relayer was offline). Merge with backend
+    // data (which carries phone, off-chain notes) when available.
     // sent
+    let backendSent: OrderRow[] = [];
     try {
       const r = await api.senderOrders(addr);
-      setOrders(r.orders);
+      backendSent = r.orders;
     } catch {
-      setOrders(await fetchOnChainOrders(addr, "sender"));
+      backendSent = [];
     }
+    const onchainSent = await fetchOnChainOrders(addr, "sender");
+    setOrders(mergeOrders(backendSent, onchainSent));
+
     // received
+    let backendRecv: OrderRow[] = [];
     try {
       const r = await api.recipientOrders(addr);
-      setReceived(r.orders);
+      backendRecv = r.orders;
     } catch {
-      setReceived(await fetchOnChainOrders(addr, "recipient"));
+      backendRecv = [];
     }
+    const onchainRecv = await fetchOnChainOrders(addr, "recipient");
+    setReceived(mergeOrders(backendRecv, onchainRecv));
   }
 
   useEffect(() => {

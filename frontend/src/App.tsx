@@ -10,6 +10,8 @@ import Pool from "./pages/Pool";
 import Profile from "./pages/Profile";
 import CashOut from "./pages/CashOut";
 import History from "./pages/History";
+import Wallet from "./pages/Wallet";
+import Login from "./pages/Login";
 
 const nav = [
   { to: "/", label: "Overview" },
@@ -100,6 +102,8 @@ export default function App() {
               <Route path="/cashout/:orderId" element={<CashOut />} />
               <Route path="/history" element={<History />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/login" element={<Login />} />
             </Routes>
           </motion.div>
         </AnimatePresence>

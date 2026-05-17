@@ -20,8 +20,21 @@ export const publicClient = createPublicClient({
   transport: http(),
 });
 
+function normalizePrivateKey(raw: string | undefined): Hex | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const withPrefix = trimmed.startsWith("0x") || trimmed.startsWith("0X") ? trimmed : `0x${trimmed}`;
+  if (!/^0x[0-9a-fA-F]{64}$/.test(withPrefix)) {
+    throw new Error(
+      `KEEPER_PRIVATE_KEY is malformed: expected 32-byte hex (64 chars, optional 0x prefix), got ${trimmed.length} chars`
+    );
+  }
+  return withPrefix as Hex;
+}
+
 export const keeperAccount = process.env.KEEPER_PRIVATE_KEY
-  ? privateKeyToAccount(process.env.KEEPER_PRIVATE_KEY as Hex)
+  ? privateKeyToAccount(normalizePrivateKey(process.env.KEEPER_PRIVATE_KEY)!)
   : undefined;
 
 export const walletClient = keeperAccount

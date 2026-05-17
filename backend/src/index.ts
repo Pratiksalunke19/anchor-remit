@@ -8,6 +8,7 @@ import { collateralRouter } from "./routes/collateral";
 import { offrampRouter } from "./routes/offramp";
 import { notifyRouter } from "./routes/notify";
 import { poolRouter } from "./routes/pool";
+import { recipientRouter } from "./routes/recipient";
 import { startChainWatcher } from "./services/chainWatcher";
 import { initDb } from "./db";
 
@@ -30,6 +31,7 @@ async function main() {
   app.use("/api/offramp", offrampRouter);
   app.use("/api/notify", notifyRouter);
   app.use("/api/pool", poolRouter);
+  app.use("/api/recipient", recipientRouter);
 
   app.listen(serverConfig.port, () => {
     console.log(`[api] listening on :${serverConfig.port}`);

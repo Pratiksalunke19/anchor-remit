@@ -59,6 +59,45 @@ async function initDb(): Promise<void> {
         value  TEXT
       );
     `);
+
+    // Wallet-free recipient experience: embedded wallets, OTP, session, tx log.
+    db.run(`
+      CREATE TABLE IF NOT EXISTS recipient_wallets (
+        address          TEXT PRIMARY KEY,
+        phone            TEXT,
+        order_id         TEXT,
+        enc_privkey      TEXT NOT NULL,
+        provider         TEXT DEFAULT 'local',
+        created_at       INTEGER
+      );
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_recipient_wallets_phone ON recipient_wallets(phone);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_recipient_wallets_order ON recipient_wallets(order_id);`);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS otp_codes (
+        phone        TEXT PRIMARY KEY,
+        code_hash    TEXT NOT NULL,
+        expires_at   INTEGER NOT NULL,
+        attempts     INTEGER DEFAULT 0,
+        created_at   INTEGER
+      );
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS recipient_tx_log (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        wallet        TEXT NOT NULL,
+        kind          TEXT NOT NULL,         -- claim | transfer | cashout | save
+        amount        TEXT NOT NULL,
+        counterparty  TEXT,
+        tx_hash       TEXT,
+        note          TEXT,
+        created_at    INTEGER
+      );
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_recipient_tx_log_wallet ON recipient_tx_log(wallet);`);
+
     saveDb();
   })();
 
@@ -171,6 +210,146 @@ export const orderRepo = {
     );
     if (result.length === 0) return [];
     return result[0].values.map((row) => rowToOrderRow(row as string[]));
+  },
+};
+
+export type RecipientWalletRow = {
+  address: string;
+  phone: string | null;
+  order_id: string | null;
+  enc_privkey: string;
+  provider: string;
+  created_at: number;
+};
+
+export const recipientWalletRepo = {
+  insert(row: RecipientWalletRow) {
+    const d = ensureDb() as { run: (sql: string, params: unknown[]) => void };
+    d.run(
+      `INSERT OR REPLACE INTO recipient_wallets
+        (address, phone, order_id, enc_privkey, provider, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        row.address.toLowerCase(),
+        row.phone,
+        row.order_id,
+        row.enc_privkey,
+        row.provider ?? "local",
+        row.created_at ?? Math.floor(Date.now() / 1000),
+      ]
+    );
+    saveDb();
+  },
+  getByAddress(address: string): RecipientWalletRow | undefined {
+    const d = ensureDb() as { exec: (sql: string, params: unknown[]) => { length: number; values: unknown[][] }[] };
+    const result = d.exec("SELECT * FROM recipient_wallets WHERE address = ?", [address.toLowerCase()]);
+    if (result.length === 0 || result[0].values.length === 0) return undefined;
+    const r = result[0].values[0] as any[];
+    return { address: r[0], phone: r[1], order_id: r[2], enc_privkey: r[3], provider: r[4], created_at: Number(r[5]) };
+  },
+  getByOrder(orderId: string): RecipientWalletRow | undefined {
+    const d = ensureDb() as { exec: (sql: string, params: unknown[]) => { length: number; values: unknown[][] }[] };
+    const result = d.exec("SELECT * FROM recipient_wallets WHERE order_id = ?", [orderId]);
+    if (result.length === 0 || result[0].values.length === 0) return undefined;
+    const r = result[0].values[0] as any[];
+    return { address: r[0], phone: r[1], order_id: r[2], enc_privkey: r[3], provider: r[4], created_at: Number(r[5]) };
+  },
+  getByPhone(phone: string): RecipientWalletRow | undefined {
+    const d = ensureDb() as { exec: (sql: string, params: unknown[]) => { length: number; values: unknown[][] }[] };
+    const result = d.exec(
+      "SELECT * FROM recipient_wallets WHERE phone = ? ORDER BY created_at DESC LIMIT 1",
+      [phone]
+    );
+    if (result.length === 0 || result[0].values.length === 0) return undefined;
+    const r = result[0].values[0] as any[];
+    return { address: r[0], phone: r[1], order_id: r[2], enc_privkey: r[3], provider: r[4], created_at: Number(r[5]) };
+  },
+  attachPhone(address: string, phone: string) {
+    const d = ensureDb() as { run: (sql: string, params: unknown[]) => void };
+    d.run("UPDATE recipient_wallets SET phone = ? WHERE address = ?", [phone, address.toLowerCase()]);
+    saveDb();
+  },
+};
+
+export const otpRepo = {
+  upsert(phone: string, codeHash: string, ttlSeconds: number) {
+    const d = ensureDb() as { run: (sql: string, params: unknown[]) => void };
+    const now = Math.floor(Date.now() / 1000);
+    d.run(
+      `INSERT OR REPLACE INTO otp_codes (phone, code_hash, expires_at, attempts, created_at)
+       VALUES (?, ?, ?, 0, ?)`,
+      [phone, codeHash, now + ttlSeconds, now]
+    );
+    saveDb();
+  },
+  get(phone: string): { code_hash: string; expires_at: number; attempts: number } | undefined {
+    const d = ensureDb() as { exec: (sql: string, params: unknown[]) => { length: number; values: unknown[][] }[] };
+    const result = d.exec("SELECT code_hash, expires_at, attempts FROM otp_codes WHERE phone = ?", [phone]);
+    if (result.length === 0 || result[0].values.length === 0) return undefined;
+    const r = result[0].values[0] as any[];
+    return { code_hash: r[0], expires_at: Number(r[1]), attempts: Number(r[2]) };
+  },
+  bumpAttempts(phone: string) {
+    const d = ensureDb() as { run: (sql: string, params: unknown[]) => void };
+    d.run("UPDATE otp_codes SET attempts = attempts + 1 WHERE phone = ?", [phone]);
+    saveDb();
+  },
+  clear(phone: string) {
+    const d = ensureDb() as { run: (sql: string, params: unknown[]) => void };
+    d.run("DELETE FROM otp_codes WHERE phone = ?", [phone]);
+    saveDb();
+  },
+};
+
+export type RecipientTxRow = {
+  id: number;
+  wallet: string;
+  kind: string;
+  amount: string;
+  counterparty: string | null;
+  tx_hash: string | null;
+  note: string | null;
+  created_at: number;
+};
+
+export const recipientTxRepo = {
+  insert(row: Omit<RecipientTxRow, "id" | "created_at"> & { created_at?: number }) {
+    const d = ensureDb() as { run: (sql: string, params: unknown[]) => void };
+    d.run(
+      `INSERT INTO recipient_tx_log (wallet, kind, amount, counterparty, tx_hash, note, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        row.wallet.toLowerCase(),
+        row.kind,
+        row.amount,
+        row.counterparty ?? null,
+        row.tx_hash ?? null,
+        row.note ?? null,
+        row.created_at ?? Math.floor(Date.now() / 1000),
+      ]
+    );
+    saveDb();
+  },
+  list(wallet: string, limit = 50): RecipientTxRow[] {
+    const d = ensureDb() as { exec: (sql: string, params: unknown[]) => { length: number; values: unknown[][] }[] };
+    const result = d.exec(
+      "SELECT id, wallet, kind, amount, counterparty, tx_hash, note, created_at FROM recipient_tx_log WHERE wallet = ? ORDER BY created_at DESC LIMIT ?",
+      [wallet.toLowerCase(), limit]
+    );
+    if (result.length === 0) return [];
+    return result[0].values.map((r) => {
+      const a = r as any[];
+      return {
+        id: Number(a[0]),
+        wallet: a[1],
+        kind: a[2],
+        amount: a[3],
+        counterparty: a[4],
+        tx_hash: a[5],
+        note: a[6],
+        created_at: Number(a[7]),
+      };
+    });
   },
 };
 
