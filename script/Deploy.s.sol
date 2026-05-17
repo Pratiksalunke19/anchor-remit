@@ -6,6 +6,7 @@ import {MockERC20} from "../src/mocks/MockERC20.sol";
 import {MockMezoVault} from "../src/mocks/MockMezoVault.sol";
 import {InsurancePool} from "../src/InsurancePool.sol";
 import {RemittanceVault} from "../src/RemittanceVault.sol";
+import {FamilyCredit} from "../src/FamilyCredit.sol";
 
 /// @title Deploy
 /// @notice Deploys the full stack (testnet: including mocks) and writes
@@ -28,8 +29,14 @@ contract Deploy is Script {
         InsurancePool pool = new InsurancePool(address(musd));
 
         // 4. Remittance Vault
-        RemittanceVault vault = new RemittanceVault(address(mezo), address(pool));
+        RemittanceVault vault = new RemittanceVault(
+            address(mezo),
+            address(pool)
+        );
         pool.setVault(address(vault));
+
+        // 4b. Family Credit (delegation)
+        FamilyCredit family = new FamilyCredit(address(mezo));
 
         // 5. Seed InsurancePool with 10,000 test MUSD
         musd.mint(deployer, 10_000 ether);
@@ -46,7 +53,8 @@ contract Deploy is Script {
             address(musd),
             address(mezo),
             address(pool),
-            address(vault)
+            address(vault),
+            address(family)
         );
 
         console2.log("== Deployment Complete ==");
@@ -55,6 +63,7 @@ contract Deploy is Script {
         console2.log("MockMezoVault:", address(mezo));
         console2.log("InsurancePool:", address(pool));
         console2.log("RemittanceVault:", address(vault));
+        console2.log("FamilyCredit :", address(family));
     }
 
     function _writeDeployments(
@@ -62,16 +71,32 @@ contract Deploy is Script {
         address musd,
         address mezo,
         address pool,
-        address vault
+        address vault,
+        address family
     ) internal {
         string memory json = string.concat(
             "{\n",
-            '  "chainId": ', vm.toString(block.chainid), ",\n",
-            '  "btc": "', vm.toString(btc), '",\n',
-            '  "musd": "', vm.toString(musd), '",\n',
-            '  "mezoVault": "', vm.toString(mezo), '",\n',
-            '  "insurancePool": "', vm.toString(pool), '",\n',
-            '  "remittanceVault": "', vm.toString(vault), '"\n',
+            '  "chainId": ',
+            vm.toString(block.chainid),
+            ",\n",
+            '  "btc": "',
+            vm.toString(btc),
+            '",\n',
+            '  "musd": "',
+            vm.toString(musd),
+            '",\n',
+            '  "mezoVault": "',
+            vm.toString(mezo),
+            '",\n',
+            '  "insurancePool": "',
+            vm.toString(pool),
+            '",\n',
+            '  "remittanceVault": "',
+            vm.toString(vault),
+            '",\n',
+            '  "familyCredit": "',
+            vm.toString(family),
+            '"\n',
             "}\n"
         );
         vm.writeFile("deployments/matsnet.json", json);

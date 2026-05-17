@@ -12,12 +12,14 @@ import CashOut from "./pages/CashOut";
 import History from "./pages/History";
 import Wallet from "./pages/Wallet";
 import Login from "./pages/Login";
+import Family from "./pages/Family";
 
 const nav = [
   { to: "/", label: "Overview" },
   { to: "/send", label: "Send" },
   { to: "/dashboard", label: "Dashboard" },
   { to: "/pool", label: "Pool" },
+  { to: "/family", label: "Family" },
   { to: "/history", label: "History" },
   { to: "/profile", label: "Profile" },
 ];
@@ -93,6 +95,7 @@ export default function App() {
             <Route path="/claim/:orderId" element={<Claim />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pool" element={<Pool />} />
+            <Route path="/family" element={<Family />} />
             <Route path="/cashout/:orderId" element={<CashOut />} />
             <Route path="/history" element={<History />} />
             <Route path="/profile" element={<Profile />} />

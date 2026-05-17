@@ -208,6 +208,140 @@ export const insurancePoolAbi = [
   },
 ] as const;
 
+export const familyCreditAbi = [
+  {
+    type: "function",
+    name: "createFamily",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "collateralBTC", type: "uint256" },
+      { name: "musdToMint", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "addCollateralAndMint",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "extraBTC", type: "uint256" },
+      { name: "extraMUSD", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "withdrawCollateral",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "musdRepay", type: "uint256" },
+      { name: "btcOut", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "setMemberLimit",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "member", type: "address" },
+      { name: "limit", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "removeMember",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "member", type: "address" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "borrow",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "head", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "repay",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "head", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "getFamily",
+    stateMutability: "view",
+    inputs: [{ name: "head", type: "address" }],
+    outputs: [
+      { name: "exists", type: "bool" },
+      { name: "collateralBTC", type: "uint256" },
+      { name: "musdMinted", type: "uint256" },
+      { name: "totalBorrowed", type: "uint256" },
+      { name: "available", type: "uint256" },
+      { name: "memberList", type: "address[]" },
+    ],
+  },
+  {
+    type: "function",
+    name: "getMember",
+    stateMutability: "view",
+    inputs: [
+      { name: "head", type: "address" },
+      { name: "member", type: "address" },
+    ],
+    outputs: [
+      { name: "limit", type: "uint256" },
+      { name: "borrowed", type: "uint256" },
+      { name: "active", type: "bool" },
+    ],
+  },
+  {
+    type: "event",
+    name: "FamilyCreated",
+    inputs: [
+      { name: "head", type: "address", indexed: true },
+      { name: "collateralBTC", type: "uint256", indexed: false },
+      { name: "musdMinted", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "Borrowed",
+    inputs: [
+      { name: "head", type: "address", indexed: true },
+      { name: "member", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "Repaid",
+    inputs: [
+      { name: "head", type: "address", indexed: true },
+      { name: "member", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "MemberSet",
+    inputs: [
+      { name: "head", type: "address", indexed: true },
+      { name: "member", type: "address", indexed: true },
+      { name: "limit", type: "uint256", indexed: false },
+    ],
+  },
+] as const;
+
 export const erc20Abi = [
   {
     type: "function",

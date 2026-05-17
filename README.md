@@ -61,6 +61,10 @@ block and without the sender ever selling their BTC.
 
 ---
 
+## Architecture
+
+!["Architecture Image"](/frontend/public/anchor-remit-architecture.png)
+
 ## 🧱 Tech stack
 
 | Layer | Stack |
@@ -157,26 +161,6 @@ Values to obtain yourself:
 
 ---
 
-## Architecture
-
-```
-┌──────────┐  BTC approve + createRemittance ┌────────────────┐
-│  Sender  │────────────────────────────────▶│ RemittanceVault│──▶ MockMezoVault (mints MUSD, holds BTC)
-└──────────┘                                 └────────────────┘
-                                                     │
-                                  PIN-locked MUSD held in escrow
-                                                     │
-┌──────────┐   claim(orderId, pin)                   ▼
-│Recipient │────────────────────────────────▶ claimRemittance ──▶ 0.1% fee → InsurancePool
-└──────────┘                                                      999% to recipient
-
-                  keeper cron, CR < 110%              Insurance
-             ┌───────────────────────────────▶ liquidationGuard ──▶ covers shortfall from Pool
-             │
-  ┌──────────┴──────────┐
-  │ Backend chainWatcher│ (viem watchContractEvent + node-cron)
-  └─────────────────────┘
-```
 
 ### Key flows
 
