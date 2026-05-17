@@ -27,6 +27,7 @@ export default function Pool() {
   const [withdrawShares, setWithdrawShares] = useState("");
   const [busy, setBusy] = useState<"deposit" | "withdraw" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const depositCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -130,6 +131,7 @@ export default function Pool() {
     if (!walletClient || !publicClient || !address) return;
     setBusy("deposit");
     setError(null);
+    setSuccess(null);
     try {
       const amt = parseEther(amount);
       const allowance = (await publicClient.readContract({
@@ -155,6 +157,7 @@ export default function Pool() {
       });
       await publicClient.waitForTransactionReceipt({ hash });
       await refresh();
+      setSuccess(`Deposited ${amount} MUSD into the pool.`);
     } catch (e: any) {
       setError(e?.shortMessage || e?.message);
     } finally {
@@ -166,6 +169,7 @@ export default function Pool() {
     if (!walletClient || !publicClient) return;
     setBusy("withdraw");
     setError(null);
+    setSuccess(null);
     try {
       const s = parseEther(withdrawShares || "0");
       const hash = await walletClient.writeContract({
@@ -176,6 +180,7 @@ export default function Pool() {
       });
       await publicClient.waitForTransactionReceipt({ hash });
       await refresh();
+      setSuccess(`Withdrew ${withdrawShares} shares from the pool.`);
     } catch (e: any) {
       setError(e?.shortMessage || e?.message);
     } finally {
@@ -238,17 +243,13 @@ export default function Pool() {
         <MetricCard
           icon={<TrendingUp className="w-4 h-4" />}
           label="Fees earned (lifetime)"
-          value={
-            metrics
-              ? `${metrics.totalFeesMusd.toLocaleString(undefined, { maximumFractionDigits: 4 })} MUSD`
-              : "—"
-          }
-          sub={metrics ? `${metrics.feeCount} fee event${metrics.feeCount === 1 ? "" : "s"}` : undefined}
+          value={`${(metrics?.totalFeesMusd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} MUSD`}
+          sub={`${metrics?.feeCount ?? 0} fee event${(metrics?.feeCount ?? 0) === 1 ? "" : "s"}`}
         />
         <MetricCard
           icon={<ShieldCheck className="w-4 h-4" />}
           label="Claims covered"
-          value={metrics ? metrics.claimsCovered.toString() : "—"}
+          value={(metrics?.claimsCovered ?? 0).toString()}
           sub={
             metrics && metrics.totalCoveredMusd > 0
               ? `${metrics.totalCoveredMusd.toLocaleString(undefined, { maximumFractionDigits: 2 })} MUSD paid out`
@@ -321,7 +322,34 @@ export default function Pool() {
             )}
           </div>
 
-          {error && <p className="text-danger text-sm">{error}</p>}
+          {error && (
+            <div
+              role="alert"
+              className="rounded-lg border border-danger/40 bg-danger/10 text-danger text-sm px-3 py-2 flex items-start justify-between gap-2"
+            >
+              <span className="flex-1">{error}</span>
+              <button
+                onClick={() => setError(null)}
+                className="text-danger/80 hover:text-danger text-xs"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+          {success && (
+            <div
+              role="status"
+              className="rounded-lg border border-forest/40 bg-forest/10 text-forest-300 text-sm px-3 py-2 flex items-start justify-between gap-2"
+            >
+              <span className="flex-1">{success}</span>
+              <button
+                onClick={() => setSuccess(null)}
+                className="text-forest-300/80 hover:text-forest-300 text-xs"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="card md:col-span-1 space-y-4">
