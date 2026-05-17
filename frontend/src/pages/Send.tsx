@@ -8,7 +8,7 @@ import { remittanceVaultAbi, erc20Abi, mezoVaultAbi } from "../abi";
 import { contractAddresses } from "../wagmi.config";
 import { api } from "../api";
 import { motion } from "framer-motion";
-import { Copy, ExternalLink, MessageCircle, Users, Droplets } from "lucide-react";
+import { Copy, ExternalLink, MessageCircle, Users, Droplets, ArrowRight, ShieldCheck } from "lucide-react";
 import { usePersistedState } from "../hooks/usePersistedState";
 import { useProfile } from "../hooks/useContacts";
 
@@ -320,16 +320,22 @@ export default function Send() {
     }
   }
 
+  const summaryRail = step === 0 ? (
+    <SummaryRail musdAmount={musdAmount} collateralBtc={collateralBtc} />
+  ) : null;
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className={step === 0 ? "max-w-5xl mx-auto" : "max-w-2xl mx-auto"}>
       <div className="mb-8">
         <span className="eyebrow">New transfer</span>
         <h1 className="font-display text-4xl text-ivory mt-2">Send MUSD</h1>
-        <p className="text-ivory/60 mt-2 max-w-xl leading-relaxed">
+        <p className="text-ivory-300 mt-2 max-w-xl leading-relaxed">
           Lock BTC as collateral, mint MUSD, and share a secure claim link with your recipient.
         </p>
       </div>
 
+      <div className={step === 0 ? "grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start" : ""}>
+      <div>
       <StepIndicator steps={STEPS} current={step} />
 
       {step === 0 && address && tbtcBalance !== null && tbtcBalance === 0n && (
@@ -487,11 +493,15 @@ export default function Send() {
               disabled={!canNext0}
               onClick={() => { setError(null); fetchTbtcBalance(); setStep(1); }}
             >
-              Next
+              Continue to PIN <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </motion.div>
       )}
+
+      </div>
+      {summaryRail}
+      </div>
 
       {step === 1 && (
         <motion.div className="card space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -669,6 +679,54 @@ function HealthFactor({
           </span>
         )}
       </p>
+    </div>
+  );
+}
+
+function SummaryRail({
+  musdAmount,
+  collateralBtc,
+}: {
+  musdAmount: string;
+  collateralBtc: string;
+}) {
+  const btc = Number(collateralBtc) || 0;
+  const musd = Number(musdAmount) || 0;
+  return (
+    <div className="space-y-5 lg:sticky lg:top-6">
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="w-2 h-2 rounded-full bg-amber-400 shadow-glow" />
+          <h3 className="font-display text-lg text-ivory">Transaction summary</h3>
+        </div>
+        <dl className="font-mono text-[13px] divide-y divide-ivory/10">
+          <SumRow k="You lock" v={`${btc.toFixed(8)} BTC`} />
+          <SumRow k="Minted" v={`${musd.toLocaleString()} MUSD`} />
+          <SumRow k="Recipient gets" v={`≈ $${musd.toLocaleString()} USD`} />
+          <SumRow k="Network fee" v="~$0.12" />
+        </dl>
+      </div>
+      <div className="rounded-2xl border border-amber/40 bg-amber/10 p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+          <span className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-amber-400">
+            Your BTC stays yours
+          </span>
+        </div>
+        <p className="text-sm text-ivory-300 leading-relaxed">
+          Collateral remains on Mezo. Repay MUSD anytime to reclaim your
+          Bitcoin — no counterparty risk.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SumRow({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex items-center justify-between py-2.5">
+      <dt className="text-ivory-300/70">{k}</dt>
+      <dd className="text-ivory tabular-nums">{v}</dd>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default function CollateralMeter({ ratio }: Props) {
   const angle = -90 + pct * 180;
 
   const color =
-    ratio >= 150 ? "#6B8475" : ratio >= 120 ? "#D9A24E" : "#B85C3E";
+    ratio >= 150 ? "#A8F060" : ratio >= 120 ? "#C8C4BC" : "#7A7670";
 
   const status =
     ratio >= 150 ? "Safe" : ratio >= 120 ? "Warning" : "Danger";
@@ -21,9 +21,9 @@ export default function CollateralMeter({ ratio }: Props) {
       <svg viewBox="0 0 200 120" className="w-full">
         <defs>
           <linearGradient id="gauge" x1="0" x2="1">
-            <stop offset="0" stopColor="#B85C3E" />
-            <stop offset="0.4" stopColor="#D9A24E" />
-            <stop offset="0.7" stopColor="#6B8475" />
+            <stop offset="0" stopColor="#7A7670" />
+            <stop offset="0.4" stopColor="#C8C4BC" />
+            <stop offset="0.7" stopColor="#A8F060" />
           </linearGradient>
         </defs>
         <path

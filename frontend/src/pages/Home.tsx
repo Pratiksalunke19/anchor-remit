@@ -4,36 +4,35 @@ import {
   ShieldCheck,
   Zap,
   Globe2,
-  MapPin,
   ArrowUpRight,
-  Lock,
+  Bitcoin,
+  CircleDollarSign,
+  Banknote,
+  ArrowDown,
 } from "lucide-react";
-import WorldMap from "../components/WorldMap";
 
 export default function Home() {
   return (
     <div className="space-y-20">
-      {/* HERO */}
-      <section className="relative overflow-hidden rounded-3xl border border-ivory/10 bg-gradient-to-b from-charcoal-700/70 to-charcoal-900/90 shadow-card-lg">
-        <div className="absolute inset-0 opacity-70 pointer-events-none">
-          <WorldMap className="w-full h-full" />
-        </div>
-        <div className="relative px-8 md:px-14 py-16 md:py-24 max-w-3xl">
-          <div className="inline-flex items-center gap-2 eyebrow mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
+      {/* HERO — two-column split */}
+      <section className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center pt-6 md:pt-10">
+        {/* Left: pitch */}
+        <div>
+          <div className="inline-flex items-center gap-3 eyebrow mb-7">
+            <span className="inline-block w-6 h-px bg-ivory-300/40" />
             Cross-border · Bitcoin-backed
           </div>
-          <h1 className="font-display text-[2.4rem] md:text-6xl leading-[1.05] text-ivory">
-            Move dollars across borders.
+          <h1 className="font-display text-[2.6rem] md:text-[3.6rem] leading-[1.02] tracking-tight text-ivory">
+            <span className="text-amber-400">Lock Bitcoin.</span>
             <br />
-            <span className="italic text-amber-300">Anchor</span> them in Bitcoin.
+            Send Dollars.
           </h1>
-          <p className="mt-6 text-ivory/70 text-lg max-w-xl leading-relaxed">
-            Anchor Remit lets you collateralise BTC on Mezo, mint MUSD, and
-            deliver instant dollars to family or partners — anywhere on the
-            map. You stay in Bitcoin. They get cash.
+          <p className="mt-7 text-ivory-300 text-[1.02rem] max-w-md leading-relaxed">
+            Collateralise BTC on Mezo, mint MUSD, and deliver instant dollars
+            to family or partners — anywhere on the map. You stay in Bitcoin.
+            They get cash.
           </p>
-          <div className="mt-10 flex flex-wrap gap-3">
+          <div className="mt-9 flex flex-wrap gap-3">
             <Link to="/send" className="btn-primary">
               Send a remittance <ArrowRight className="w-4 h-4" />
             </Link>
@@ -41,42 +40,32 @@ export default function Home() {
               Provide liquidity <ArrowUpRight className="w-4 h-4" />
             </Link>
           </div>
-
-          <div className="mt-12 flex items-center gap-6 text-xs text-ivory/55">
-            <div className="flex items-center gap-2">
-              <Lock className="w-3.5 h-3.5 text-forest-300" />
-              Self-custodial
-            </div>
-            <div className="w-px h-4 bg-ivory/10" />
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-forest-300" />
-              Insurance-backed
-            </div>
-            <div className="w-px h-4 bg-ivory/10" />
-            <div className="flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5 text-amber-300" />
-              Settles in seconds
-            </div>
-          </div>
         </div>
 
-        {/* corridor card pinned to the map */}
-        <div className="hidden lg:block absolute right-10 top-12 w-64 surface px-5 py-4 shadow-card-lg">
-          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-ivory/50">
-            <span>Active corridor</span>
-            <span className="text-forest-300">Live</span>
-          </div>
-          <div className="mt-3 flex items-center justify-between">
-            <Endpoint flag="🇺🇸" code="USA" sub="Sender" />
-            <div className="flex-1 mx-3 relative h-px bg-ivory/15">
-              <span className="absolute inset-0 bg-amber-300/60 animate-[pulse_2s_ease-in-out_infinite]" />
-              <ArrowRight className="absolute -right-2 -top-1.5 w-3 h-3 text-amber-300" />
-            </div>
-            <Endpoint flag="🇵🇭" code="PHL" sub="Recipient" align="right" />
-          </div>
-          <div className="mt-4 flex items-baseline justify-between">
-            <span className="font-display text-2xl text-ivory">$240.00</span>
-            <span className="text-[11px] text-ivory/50">in ~7s</span>
+        {/* Right: BTC → MUSD → Cash flow */}
+        <div className="card-elevated p-6 md:p-7">
+          <div className="eyebrow mb-5">How it works</div>
+          <div className="space-y-3">
+            <FlowStep
+              icon={<Bitcoin className="w-5 h-5" />}
+              title="Lock BTC as collateral"
+              sub="Secured on Mezo protocol"
+              chip="BTC"
+            />
+            <FlowArrow />
+            <FlowStep
+              icon={<CircleDollarSign className="w-5 h-5" />}
+              title="Mint MUSD"
+              sub="≥150% collateralisation ratio"
+              chip="MUSD"
+            />
+            <FlowArrow />
+            <FlowStep
+              icon={<Banknote className="w-5 h-5" />}
+              title="Recipient claims cash"
+              sub="Secure link, instant delivery"
+              chip="CASH"
+            />
           </div>
         </div>
       </section>
@@ -183,24 +172,35 @@ function Step({
   );
 }
 
-function Endpoint({
-  flag,
-  code,
+function FlowStep({
+  icon,
+  title,
   sub,
-  align = "left",
+  chip,
 }: {
-  flag: string;
-  code: string;
+  icon: React.ReactNode;
+  title: string;
   sub: string;
-  align?: "left" | "right";
+  chip: string;
 }) {
   return (
-    <div className={`flex flex-col ${align === "right" ? "items-end" : ""}`}>
-      <span className="text-lg leading-none">{flag}</span>
-      <span className="font-medium text-ivory text-xs mt-1">{code}</span>
-      <span className="text-[10px] text-ivory/45 uppercase tracking-wider">
-        {sub}
-      </span>
+    <div className="rounded-xl border border-ivory/10 bg-charcoal-900/60 px-4 py-3.5 flex items-center gap-4">
+      <div className="w-10 h-10 rounded-lg bg-amber/10 border border-amber/25 text-amber-400 flex items-center justify-center shrink-0">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-ivory text-[15px] leading-tight">{title}</div>
+        <div className="text-xs text-ivory-300/70 mt-1">{sub}</div>
+      </div>
+      <span className="pill-amber">{chip}</span>
+    </div>
+  );
+}
+
+function FlowArrow() {
+  return (
+    <div className="flex justify-center text-ivory-300/40">
+      <ArrowDown className="w-4 h-4" />
     </div>
   );
 }

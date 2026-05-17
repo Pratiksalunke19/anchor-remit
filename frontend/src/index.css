@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: dark;
-  --map-stroke: rgba(244, 236, 221, 0.05);
+  --map-stroke: rgba(200, 196, 188, 0.05);
 }
 
 html,
@@ -15,12 +15,12 @@ body,
 
 body {
   font-family: "Inter", system-ui, sans-serif;
-  color: #F4ECDD;
-  background-color: #14110F;
+  color: #F2F0EC;
+  background-color: #0C0C0D;
   background-image:
-    radial-gradient(circle at 18% 12%, rgba(217, 162, 78, 0.10), transparent 42%),
-    radial-gradient(circle at 82% 88%, rgba(107, 132, 117, 0.09), transparent 48%),
-    radial-gradient(circle at 50% 50%, rgba(166, 113, 46, 0.04), transparent 60%);
+    radial-gradient(circle at 18% 12%, rgba(168, 240, 96, 0.06), transparent 42%),
+    radial-gradient(circle at 82% 88%, rgba(168, 240, 96, 0.04), transparent 48%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02), transparent 60%);
   background-attachment: fixed;
 }
 
@@ -33,7 +33,7 @@ body::before {
   z-index: 0;
   opacity: 0.55;
   background-image: radial-gradient(
-    rgba(244, 236, 221, 0.05) 1px,
+    rgba(200, 196, 188, 0.05) 1px,
     transparent 1px
   );
   background-size: 22px 22px;
@@ -47,13 +47,14 @@ body::before {
 }
 
 ::selection {
-  background: rgba(217, 162, 78, 0.35);
-  color: #F4ECDD;
+  background: rgba(168, 240, 96, 0.35);
+  color: #0C0C0D;
 }
 
 h1, h2, h3, .font-display {
-  font-family: "Fraunces", "Georgia", serif;
-  letter-spacing: -0.01em;
+  font-family: "Syne", "Inter", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 700;
 }
 
 @layer components {
@@ -73,8 +74,8 @@ h1, h2, h3, .font-display {
   }
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-medium
-           bg-amber-sheen text-charcoal-900 shadow-glow
-           hover:brightness-105 active:brightness-95 transition
+           bg-amber-sheen text-charcoal-950 shadow-glow
+           hover:brightness-110 active:brightness-95 transition
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-ghost {
@@ -84,7 +85,7 @@ h1, h2, h3, .font-display {
   }
   .btn-soft {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-medium
-           bg-amber/10 text-amber-300 border border-amber/30
+           bg-amber/10 text-amber-400 border border-amber/30
            hover:bg-amber/15 transition;
   }
   .input {
@@ -93,32 +94,32 @@ h1, h2, h3, .font-display {
            focus:border-amber/60 focus:ring-2 focus:ring-amber/20 transition;
   }
   .label {
-    @apply text-xs font-medium uppercase tracking-[0.14em] text-ivory/55 mb-1.5 block;
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ivory-300/70 mb-1.5 block;
   }
   .pill {
-    @apply inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1
-           rounded-full uppercase tracking-wider;
+    @apply inline-flex items-center gap-1 font-mono text-[10px] font-medium px-2.5 py-1
+           rounded-full uppercase tracking-[0.14em];
   }
   .pill-amber {
-    @apply pill bg-amber/10 text-amber-300 border border-amber/25;
+    @apply pill bg-amber/10 text-amber-400 border border-amber/30;
   }
   .pill-forest {
-    @apply pill bg-forest/15 text-forest-300 border border-forest/30;
+    @apply pill bg-amber/10 text-amber-400 border border-amber/30;
   }
   .pill-clay {
-    @apply pill bg-clay/15 text-clay-400 border border-clay/30;
+    @apply pill bg-ivory-300/10 text-ivory-300 border border-ivory-300/20;
   }
   .pill-muted {
-    @apply pill bg-ivory/5 text-ivory/55 border border-ivory/10;
+    @apply pill bg-ivory/5 text-ivory-300/70 border border-ivory/10;
   }
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-300;
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.32em] text-amber-400;
   }
   .stat-value {
     @apply font-display text-3xl text-ivory tracking-tight;
   }
   .stat-label {
-    @apply text-[11px] uppercase tracking-[0.18em] text-ivory/50;
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-ivory-300/60;
   }
   .divide-hairline > * + * {
     @apply border-t border-ivory/10;

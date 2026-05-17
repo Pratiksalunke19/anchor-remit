@@ -52,14 +52,14 @@ export default function WorldMap({
     >
       <defs>
         <linearGradient id="ar-route" x1="0" x2="1">
-          <stop offset="0" stopColor="#D9A24E" stopOpacity="0" />
-          <stop offset="0.2" stopColor="#D9A24E" stopOpacity="0.8" />
-          <stop offset="0.8" stopColor="#E5B976" stopOpacity="0.9" />
-          <stop offset="1" stopColor="#E5B976" stopOpacity="0" />
+          <stop offset="0" stopColor="#A8F060" stopOpacity="0" />
+          <stop offset="0.2" stopColor="#A8F060" stopOpacity="0.85" />
+          <stop offset="0.8" stopColor="#C5F58E" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#C5F58E" stopOpacity="0" />
         </linearGradient>
         <radialGradient id="ar-pin" cx="50%" cy="50%" r="50%">
-          <stop offset="0" stopColor="#E5B976" />
-          <stop offset="1" stopColor="#A6712E" />
+          <stop offset="0" stopColor="#C5F58E" />
+          <stop offset="1" stopColor="#6FB52E" />
         </radialGradient>
       </defs>
 
@@ -96,9 +96,9 @@ export default function WorldMap({
           </g>
           {/* destination pin */}
           <g transform={`translate(${end.x} ${end.y})`}>
-            <circle r={11} fill="rgba(107,132,117,0.18)" />
-            <circle r={5} fill="#6B8475" />
-            <circle r={2} fill="#F4ECDD" />
+            <circle r={11} fill="rgba(168,240,96,0.18)" />
+            <circle r={5} fill="#A8F060" />
+            <circle r={2} fill="#0C0C0D" />
           </g>
         </>
       )}

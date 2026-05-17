@@ -21,7 +21,7 @@ export default function StepIndicator({ steps, current }: Props) {
               }`}
             />
             <span
-              className={`text-[11px] font-semibold uppercase tracking-[0.18em] whitespace-nowrap transition ${
+              className={`font-mono text-[10px] font-medium uppercase tracking-[0.18em] whitespace-nowrap transition ${
                 active
                   ? "text-amber-300"
                   : done
